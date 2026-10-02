@@ -1,0 +1,185 @@
+.boletim-pagina {
+  font-family: Roboto, sans-serif;
+  color: #42474a;
+}
+
+.boletim-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap-reverse;
+  gap: 12px;
+  margin: 0 -32px 8px;
+  padding: 16px 32px 8px;
+  background: #f5f6f8;
+}
+
+.boletim-titulo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 29px;
+  color: #42474a;
+}
+
+.boletim-ajuda {
+  border: 0;
+  background: transparent;
+  color: #086397;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.boletim-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-acao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-roxo {
+  border-color: #6933ff;
+  color: #6933ff;
+}
+
+.btn-azul {
+  border-color: #086397;
+  color: #086397;
+  width: 38px;
+  padding: 8px;
+}
+
+.btn-roxo:hover:not(:disabled),
+.btn-azul:hover:not(:disabled) {
+  color: #fff;
+}
+
+.btn-roxo:hover:not(:disabled) {
+  background: #6933ff;
+}
+
+.btn-azul:hover:not(:disabled) {
+  background: #086397;
+}
+
+.btn-acao:disabled {
+  background: transparent;
+  border-color: #dadada;
+  color: #dadada;
+  cursor: not-allowed;
+}
+
+.boletim-card {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  padding: 24px 16px;
+}
+
+.alerta-infantil {
+  margin: 0 0 12px;
+}
+
+.gerando-card {
+  min-height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gerando-conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(420px, 90%);
+}
+
+.gerando-spinner {
+  width: 46px;
+  height: 46px;
+  border: 4px solid #e4dcff;
+  border-top-color: #6933ff;
+  border-radius: 50%;
+  animation: boletim-girar 0.8s linear infinite;
+}
+
+.gerando-titulo {
+  font-size: 16px;
+  color: #42474a;
+}
+
+.gerando-barra {
+  width: 100%;
+  height: 6px;
+  background: #ece7ff;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.gerando-barra-preenchimento {
+  height: 100%;
+  background: #6933ff;
+  transition: width 0.12s linear;
+}
+
+.gerando-dica {
+  font-size: 13px;
+  color: #8d9498;
+}
+
+.boletim-visualizacao {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.boletim-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 4px 8px;
+  font-size: 13px;
+  color: #42474a;
+}
+
+.boletim-resumo-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+
+.boletim-pdf {
+  width: 100%;
+  height: calc(100vh - 210px);
+  min-height: 640px;
+  border: 0;
+  background: #525659;
+}
+
+.filtros-ocultos {
+  display: none;
+}
+
+@keyframes boletim-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
