@@ -55,6 +55,14 @@ describe("boletimService", () => {
     expect(postSgp).toHaveBeenCalledWith("v1/boletim/imprimir", dados);
   });
 
+  it("retorna vazio quando a impressao nao produz dados", async () => {
+    vi.mocked(postSgp).mockResolvedValue({ data: undefined } as never);
+
+    await expect(
+      imprimirBoletim({ ...filtro, alunosCodigo: [] }),
+    ).resolves.toEqual({});
+  });
+
   it("sinaliza erro quando a impressao falha", async () => {
     vi.mocked(postSgp).mockRejectedValue(new Error("falha"));
 

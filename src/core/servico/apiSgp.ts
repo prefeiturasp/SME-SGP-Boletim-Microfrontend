@@ -10,8 +10,14 @@ export const definirTokenSgp = (token?: string) => {
 
 const apiSgp = axios.create();
 
-const serializarValor = (valor: unknown) =>
-  typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+const serializarValor = (valor: unknown) => {
+  if (typeof valor === "string") return valor;
+  if (typeof valor === "number") return valor.toString();
+  if (typeof valor === "boolean") return valor.toString();
+  if (typeof valor === "bigint") return valor.toString();
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return "";
+};
 
 export const serializarParams = (params: Record<string, unknown>) => {
   const search = new URLSearchParams();
