@@ -2,7 +2,7 @@ services:
   boletim-microfrontend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.runtime
     image: sme-sgp-boletim-microfrontend:local
     pull_policy: build
     ports:
