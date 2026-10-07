@@ -58,6 +58,20 @@ interface BoletimProps {
   apiUrl?: string;
 }
 
+const criarArquivoPdf = async (resumo: ResumoBoletim) => {
+  const bytes = await criarBoletimPdfMock(resumo);
+  return new File(
+    [Uint8Array.from(bytes)],
+    nomeArquivoBoletim(resumo.anoLetivo),
+    { type: "application/pdf" },
+  );
+};
+
+const atualizarUrlPdf = (arquivo: File) => (urlAtual: string) => {
+  if (urlAtual) URL.revokeObjectURL(urlAtual);
+  return URL.createObjectURL(arquivo);
+};
+
 const Boletim = ({ apiUrl }: BoletimProps) => {
   const navigate = useNavigate();
   const usuario = useSelector((state: RootState) => state.usuario);
@@ -187,6 +201,17 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
     const duracao = 2200;
     let quadro = 0;
 
+    const concluirGeracao = async () => {
+      try {
+        const arquivo = await criarArquivoPdf(resumoExibido);
+        if (!ativo) return;
+        setPdfUrl(atualizarUrlPdf(arquivo));
+        setEtapa("visualizacao");
+      } catch {
+        if (ativo) setEtapa("filtros");
+      }
+    };
+
     const animar = () => {
       const percentual = Math.min(100, ((Date.now() - inicio) / duracao) * 100);
       if (!ativo) return;
@@ -196,21 +221,7 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
         return;
       }
 
-      criarBoletimPdfMock(resumoExibido)
-        .then((bytes) => {
-          if (!ativo) return;
-          const arquivo = new File([Uint8Array.from(bytes)], nomeArquivoBoletim(resumoExibido.anoLetivo), {
-            type: "application/pdf",
-          });
-          setPdfUrl((atual) => {
-            if (atual) URL.revokeObjectURL(atual);
-            return URL.createObjectURL(arquivo);
-          });
-          setEtapa("visualizacao");
-        })
-        .catch(() => {
-          if (ativo) setEtapa("filtros");
-        });
+      void concluirGeracao();
     };
 
     quadro = requestAnimationFrame(animar);

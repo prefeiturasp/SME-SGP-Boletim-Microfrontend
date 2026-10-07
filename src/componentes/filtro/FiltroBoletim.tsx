@@ -232,8 +232,8 @@ const FiltroBoletim = ({
       setListaDres(lista);
       if (lista.length === 1) setDreCodigo(lista[0].valor);
       if (!lista.length) setDreCodigo(undefined);
-    } catch (falha) {
-      exibirErrosApi(falha);
+    } catch (error) {
+      exibirErrosApi(error);
       setDreCodigo(undefined);
       setListaDres([]);
     } finally {
@@ -252,8 +252,8 @@ const FiltroBoletim = ({
       const lista = await listarUes(consideraHistorico, dreCodigo, anoLetivo);
       if (lista.length === 1) setUeCodigo(lista[0].valor);
       setListaUes(lista);
-    } catch (falha) {
-      exibirErrosApi(falha);
+    } catch (error) {
+      exibirErrosApi(error);
       setListaUes([]);
     } finally {
       setCarregandoUes(false);
@@ -275,8 +275,8 @@ const FiltroBoletim = ({
       const lista = await listarModalidades(ueCodigo, consideraHistorico, anoLetivo);
       setListaModalidades(lista);
       if (lista.length === 1) setModalidadeId(lista[0].valor);
-    } catch (falha) {
-      exibirErrosApi(falha);
+    } catch (error) {
+      exibirErrosApi(error);
       setListaModalidades([]);
     } finally {
       setCarregandoModalidade(false);
@@ -310,8 +310,8 @@ const FiltroBoletim = ({
         );
         if (lista.length === 1) setSemestre(lista[0].valor);
         setListaSemestres(lista);
-      } catch (falha) {
-        exibirErrosApi(falha);
+      } catch (error) {
+        exibirErrosApi(error);
         setListaSemestres([]);
       } finally {
         setCarregandoSemestres(false);
@@ -356,8 +356,8 @@ const FiltroBoletim = ({
       } else {
         setListaTurmas([]);
       }
-    } catch (falha) {
-      exibirErrosApi(falha);
+    } catch (error) {
+      exibirErrosApi(error);
       setListaTurmas([]);
     } finally {
       setCarregandoTurmas(false);

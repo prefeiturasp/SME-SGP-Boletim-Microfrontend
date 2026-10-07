@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import federation from "@originjs/vite-plugin-federation";
-import path from "path";
+import path from "node:path";
 
 export default defineConfig({
   resolve: {

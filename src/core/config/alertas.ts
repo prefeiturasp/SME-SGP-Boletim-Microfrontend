@@ -7,12 +7,17 @@ const exibirAlerta = (tipo: "success" | "error" | "warning", mensagem: string) =
     error: "Erro",
     warning: "Aviso",
   };
+  const classes = {
+    success: "sucesso",
+    error: "erro",
+    warning: "aviso",
+  };
 
   const config = {
     message: titulos[tipo],
     description: mensagem,
     duration: 6,
-    className: `alerta-${tipo === "success" ? "sucesso" : tipo === "error" ? "erro" : "aviso"}`,
+    className: `alerta-${classes[tipo]}`,
   };
 
   const api = getAntdNotification();

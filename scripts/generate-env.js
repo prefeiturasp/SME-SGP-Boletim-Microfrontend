@@ -1,12 +1,12 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function parseEnv(content) {
   const env = {};
-  const lines = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
+  const lines = content.replaceAll("\r\n", "\n").replaceAll("\r", "\n").split("\n");
 
   lines.forEach((line) => {
     const trimmedLine = line.trim();
