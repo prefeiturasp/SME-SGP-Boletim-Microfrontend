@@ -148,14 +148,14 @@ const desenharTexto = (
 const celula = (
   page: PDFPage,
   valor: string,
-  x: number,
-  y: number,
-  largura: number,
-  altura: number,
+  posicao: { x: number; y: number },
+  dimensoes: { largura: number; altura: number },
   fonte: PDFFont,
   tamanho = 7,
   alinhar: "centro" | "inicio" = "centro",
 ) => {
+  const { x, y } = posicao;
+  const { largura, altura } = dimensoes;
   page.drawRectangle({
     x,
     y: y - altura,
@@ -236,41 +236,41 @@ export const criarBoletimPdfMock = async (resumo: ResumoBoletim) => {
     const altura = 14;
     const x0 = 28;
 
-    celula(pagina, "Componentes curriculares", x0, y, larguraNome, altura * 2, negrito, 7, "inicio");
+    celula(pagina, "Componentes curriculares", { x: x0, y }, { largura: larguraNome, altura: altura * 2 }, negrito, 7, "inicio");
     ["1º Bim.", "2º Bim.", "3º Bim.", "4º Bim."].forEach((rotulo, indice) => {
       const x = x0 + larguraNome + indice * larguraBimestre;
-      celula(pagina, rotulo, x, y, larguraBimestre, altura, negrito, 6);
-      celula(pagina, "Conc.", x, y - altura, larguraBimestre / 2, altura, regular, 6);
-      celula(pagina, "%", x + larguraBimestre / 2, y - altura, larguraBimestre / 2, altura, regular, 6);
+      celula(pagina, rotulo, { x, y }, { largura: larguraBimestre, altura }, negrito, 6);
+      celula(pagina, "Conc.", { x, y: y - altura }, { largura: larguraBimestre / 2, altura }, regular, 6);
+      celula(pagina, "%", { x: x + larguraBimestre / 2, y: y - altura }, { largura: larguraBimestre / 2, altura }, regular, 6);
     });
-    celula(pagina, "Final", x0 + larguraNome + larguraBimestre * 4, y, larguraFinal, altura * 2, negrito, 7);
+    celula(pagina, "Final", { x: x0 + larguraNome + larguraBimestre * 4, y }, { largura: larguraFinal, altura: altura * 2 }, negrito, 7);
 
     y -= altura * 2;
     estudante.componentes.forEach((linha) => {
-      celula(pagina, linha.nome, x0, y, larguraNome, altura, regular, 7, "inicio");
+      celula(pagina, linha.nome, { x: x0, y }, { largura: larguraNome, altura }, regular, 7, "inicio");
       linha.bimestres.forEach((nota, indice) => {
         const x = x0 + larguraNome + indice * larguraBimestre;
-        celula(pagina, nota.conceito || "-", x, y, larguraBimestre / 2, altura, regular, 6);
-        celula(pagina, nota.percentual || "-", x + larguraBimestre / 2, y, larguraBimestre / 2, altura, regular, 6);
+        celula(pagina, nota.conceito || "-", { x, y }, { largura: larguraBimestre / 2, altura }, regular, 6);
+        celula(pagina, nota.percentual || "-", { x: x + larguraBimestre / 2, y }, { largura: larguraBimestre / 2, altura }, regular, 6);
       });
-      celula(pagina, linha.final, x0 + larguraNome + larguraBimestre * 4, y, larguraFinal, altura, regular, 7);
+      celula(pagina, linha.final, { x: x0 + larguraNome + larguraBimestre * 4, y }, { largura: larguraFinal, altura }, regular, 7);
       y -= altura;
     });
 
     estudante.areas.forEach((area) => {
-      celula(pagina, area.nome, x0, y, larguraNome, altura, regular, 6, "inicio");
+      celula(pagina, area.nome, { x: x0, y }, { largura: larguraNome, altura }, regular, 6, "inicio");
       area.valores.forEach((valor, indice) => {
-        celula(pagina, valor, x0 + larguraNome + indice * larguraBimestre, y, larguraBimestre, altura, regular, 6);
+        celula(pagina, valor, { x: x0 + larguraNome + indice * larguraBimestre, y }, { largura: larguraBimestre, altura }, regular, 6);
       });
-      celula(pagina, "-", x0 + larguraNome + larguraBimestre * 4, y, larguraFinal, altura, regular, 7);
+      celula(pagina, "-", { x: x0 + larguraNome + larguraBimestre * 4, y }, { largura: larguraFinal, altura }, regular, 7);
       y -= altura;
     });
 
     y -= 8;
     estudante.grupos.forEach((grupo) => {
-      celula(pagina, grupo.nome, x0, y, 360, altura, regular, 6, "inicio");
-      celula(pagina, grupo.valores[0], x0 + 360, y, 89, altura, regular, 6);
-      celula(pagina, grupo.valores[1], x0 + 449, y, 90, altura, regular, 6);
+      celula(pagina, grupo.nome, { x: x0, y }, { largura: 360, altura }, regular, 6, "inicio");
+      celula(pagina, grupo.valores[0], { x: x0 + 360, y }, { largura: 89, altura }, regular, 6);
+      celula(pagina, grupo.valores[1], { x: x0 + 449, y }, { largura: 90, altura }, regular, 6);
       y -= altura;
     });
 

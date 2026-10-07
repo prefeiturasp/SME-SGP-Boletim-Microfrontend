@@ -7,8 +7,8 @@ export const definirUrlApiSgp = (url?: string) => {
 export const getSgpApiUrl = (): string => {
   if (urlApiInformadaPeloHost) return urlApiInformadaPeloHost;
 
-  if (window.__ENV__?.VITE_SGP_API) {
-    return window.__ENV__.VITE_SGP_API;
+  if (globalThis.__ENV__?.VITE_SGP_API) {
+    return globalThis.__ENV__.VITE_SGP_API;
   }
 
   if (import.meta.env.VITE_SGP_API) {

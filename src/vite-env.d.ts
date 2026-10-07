@@ -11,6 +11,8 @@ interface EnvBoletim {
 }
 
 declare global {
+  var __ENV__: EnvBoletim | undefined;
+
   interface Window {
     __ENV__?: EnvBoletim;
   }

@@ -4,14 +4,12 @@ describe("configuracao da API do SGP", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
-    vi.stubGlobal("window", { __ENV__: {} });
+    vi.stubGlobal("__ENV__", {});
   });
 
   it("prioriza a URL informada pelo host e remove a barra final", async () => {
     vi.stubEnv("VITE_SGP_API", "https://variavel.exemplo/api");
-    vi.stubGlobal("window", {
-      __ENV__: { VITE_SGP_API: "https://runtime.exemplo/api" },
-    });
+    vi.stubGlobal("__ENV__", { VITE_SGP_API: "https://runtime.exemplo/api" });
     const { definirUrlApiSgp, getSgpApiUrl } = await import("./config");
 
     definirUrlApiSgp("https://host.exemplo/api/");
@@ -21,9 +19,7 @@ describe("configuracao da API do SGP", () => {
 
   it("usa a configuracao de runtime quando o host nao informa a URL", async () => {
     vi.stubEnv("VITE_SGP_API", "https://variavel.exemplo/api");
-    vi.stubGlobal("window", {
-      __ENV__: { VITE_SGP_API: "https://runtime.exemplo/api" },
-    });
+    vi.stubGlobal("__ENV__", { VITE_SGP_API: "https://runtime.exemplo/api" });
     const { getSgpApiUrl } = await import("./config");
 
     expect(getSgpApiUrl()).toBe("https://runtime.exemplo/api");

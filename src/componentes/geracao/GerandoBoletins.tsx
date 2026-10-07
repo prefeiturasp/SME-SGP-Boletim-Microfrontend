@@ -7,9 +7,9 @@ const GerandoBoletins = ({ progresso }: GerandoBoletinsProps) => (
     <div className="gerando-conteudo">
       <div className="gerando-spinner" />
       <strong className="gerando-titulo">Gerando boletins...</strong>
-      <div className="gerando-barra" role="progressbar" aria-valuenow={Math.round(progresso)} aria-valuemin={0} aria-valuemax={100}>
-        <div className="gerando-barra-preenchimento" style={{ width: `${progresso}%` }} />
-      </div>
+      <progress className="gerando-barra" value={progresso} max={100}>
+        {Math.round(progresso)}%
+      </progress>
       <span className="gerando-dica">Isso pode levar alguns segundos.</span>
     </div>
   </section>

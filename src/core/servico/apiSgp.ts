@@ -10,7 +10,10 @@ export const definirTokenSgp = (token?: string) => {
 
 const apiSgp = axios.create();
 
-const serializarParams = (params: Record<string, unknown>) => {
+const serializarValor = (valor: unknown) =>
+  typeof valor === "object" ? JSON.stringify(valor) : String(valor);
+
+export const serializarParams = (params: Record<string, unknown>) => {
   const search = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([chave, valor]) => {
@@ -19,13 +22,13 @@ const serializarParams = (params: Record<string, unknown>) => {
     if (Array.isArray(valor)) {
       valor.forEach((item) => {
         if (item !== null && item !== undefined && item !== "") {
-          search.append(chave, String(item));
+          search.append(chave, serializarValor(item));
         }
       });
       return;
     }
 
-    search.append(chave, String(valor));
+    search.append(chave, serializarValor(valor));
   });
 
   return search.toString();

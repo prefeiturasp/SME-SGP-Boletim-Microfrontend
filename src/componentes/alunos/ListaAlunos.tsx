@@ -30,10 +30,10 @@ const ListaAlunos = ({ filtro, onSelecionar }: ListaAlunosProps) => {
         if (!ativo) return;
         setLinhas(items);
       })
-      .catch((falha) => {
+      .catch((error) => {
         if (!ativo) return;
         setLinhas([]);
-        exibirErrosApi(falha);
+        exibirErrosApi(error);
       })
       .finally(() => {
         if (ativo) setCarregando(false);
@@ -58,7 +58,7 @@ const ListaAlunos = ({ filtro, onSelecionar }: ListaAlunosProps) => {
         rowSelection={{
           selectedRowKeys: selecionados,
           onChange: (chaves) => {
-            const codigos = chaves.map((chave) => String(chave));
+            const codigos = chaves.map(String);
             setSelecionados(codigos);
             onSelecionar(codigos);
           },
