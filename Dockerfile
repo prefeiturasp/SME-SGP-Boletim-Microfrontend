@@ -1,23 +1,30 @@
 FROM node:22-bookworm-slim AS build
 
 WORKDIR /app
+RUN chown node:node /app
+USER node
 
-COPY package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
-COPY index.html tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts .env.production ./
-COPY scripts ./scripts
-COPY src ./src
+COPY --chown=node:node index.html tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts .env.production ./
+COPY --chown=node:node scripts ./scripts
+COPY --chown=node:node src ./src
 
 RUN cp .env.production .env && npm run build
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-ENV NGINX_ENVSUBST_OUTPUT_DIR=/usr/share/nginx/html
+COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
+COPY --chown=101:101 docker/env.js.template /usr/share/nginx/html/env.js.template
+COPY --chown=101:101 configuracoes/default.conf /etc/nginx/conf.d/default.conf
+COPY --chown=101:101 startup.sh /startup.sh
 
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY docker/env.js.template /etc/nginx/templates/env.js.template
+USER root
+RUN chmod 755 /startup.sh
 
-EXPOSE 80
+USER 101:101
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8080
+
+ENTRYPOINT ["/startup.sh"]
