@@ -15,13 +15,10 @@ RUN cp .env.production .env && npm run build
 
 FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 
-COPY --chown=101:101 --from=build /app/dist /usr/share/nginx/html
-COPY --chown=101:101 docker/env.js.template /usr/share/nginx/html/env.js.template
-COPY --chown=101:101 configuracoes/default.conf /etc/nginx/conf.d/default.conf
-COPY --chown=101:101 startup.sh /startup.sh
-
-USER root
-RUN chmod 755 /startup.sh
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY docker/env.js.template /usr/share/nginx/html/env.js.template
+COPY configuracoes/default.conf /etc/nginx/conf.d/default.conf
+COPY --chmod=555 startup.sh /startup.sh
 
 USER 101:101
 
