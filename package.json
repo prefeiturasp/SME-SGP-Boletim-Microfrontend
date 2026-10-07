@@ -7,6 +7,8 @@
     "generate-env": "node scripts/generate-env.js",
     "dev": "npm run generate-env && vite",
     "build": "npm run generate-env && tsc -b && vite build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "preview": "vite preview",
     "mf:dev": "npm run generate-env && concurrently \"npm run build -- --watch\" \"vite preview --port 5174 --strictPort\""
   },
@@ -30,8 +32,10 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^0.34.6",
     "concurrently": "^9.2.1",
     "typescript": "~5.9.3",
-    "vite": "^4.5.3"
+    "vite": "^4.5.3",
+    "vitest": "^0.34.6"
   }
 }
