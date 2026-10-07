@@ -31,4 +31,11 @@ describe("configuracao da API do SGP", () => {
 
     expect(getSgpApiUrl()).toBe("https://variavel.exemplo/api");
   });
+
+  it("retorna vazio quando nenhuma URL foi configurada", async () => {
+    vi.stubEnv("VITE_SGP_API", "");
+    const { getSgpApiUrl } = await import("./config");
+
+    expect(getSgpApiUrl()).toBe("");
+  });
 });
