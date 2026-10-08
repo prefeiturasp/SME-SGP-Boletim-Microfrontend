@@ -1,0 +1,21 @@
+services:
+  boletim-microfrontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.runtime
+    image: sme-sgp-boletim-microfrontend:local
+    pull_policy: build
+    ports:
+      - "${PORTA_HTTP:-5174}:8080"
+    environment:
+      VITE_SGP_API: "${VITE_SGP_API:-}"
+      VITE_BOLETIM_VERSAO: "${VITE_BOLETIM_VERSAO:-0.0.1}"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O - http://127.0.0.1:8080/assets/remoteEntry.js > /dev/null || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
