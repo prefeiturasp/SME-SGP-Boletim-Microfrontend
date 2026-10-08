@@ -1,0 +1,80 @@
+.campo-label {
+  display: block;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  color: #42474a;
+  margin-bottom: 3px;
+  line-height: 22px;
+}
+
+.campo-select {
+  width: 100%;
+}
+
+.campo-spin,
+.campo-spin .ant-spin-nested-loading,
+.campo-spin .ant-spin-container {
+  width: 100%;
+}
+
+.filtros {
+  width: 100%;
+}
+
+.linha {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.linha-anos {
+  grid-template-columns: 2fr 5fr 5fr;
+}
+
+.linha-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aviso-boletim {
+  font-size: 12px;
+  line-height: 16px;
+  color: #c0630e;
+  margin-top: 4px;
+}
+
+.radio-inativos .ant-radio-inner::after {
+  background-color: #6933ff !important;
+}
+
+.radio-inativos .ant-radio-checked .ant-radio-inner {
+  border-color: #6933ff !important;
+  background-color: initial !important;
+}
+
+.radio-inativos .ant-radio-wrapper:hover .ant-radio,
+.radio-inativos .ant-radio:hover .ant-radio-inner,
+.radio-inativos .ant-radio-input:focus + .ant-radio-inner {
+  border-color: #6933ff !important;
+}
+
+.checkbox-historico .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #6933ff;
+  border-color: #6933ff;
+}
+
+.checkbox-historico .ant-checkbox-wrapper:hover .ant-checkbox-inner,
+.checkbox-historico .ant-checkbox:hover .ant-checkbox-inner {
+  border-color: #6933ff;
+}
+
+.lista-alunos {
+  padding-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .linha-anos,
+  .linha-3 {
+    grid-template-columns: 1fr;
+  }
+}
