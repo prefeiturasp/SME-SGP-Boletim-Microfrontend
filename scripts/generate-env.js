@@ -28,6 +28,7 @@ const env = parseEnv(envContent);
 
 const envJsContent = `window.__ENV__ = {
   VITE_SGP_API: "${env.VITE_SGP_API || ""}",
+  VITE_BOLETIM_API: "${env.VITE_BOLETIM_API || ""}",
   VITE_BOLETIM_VERSAO: "${env.VITE_BOLETIM_VERSAO || ""}"
 };
 `;

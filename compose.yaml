@@ -9,6 +9,7 @@ services:
       - "${PORTA_HTTP:-5174}:8080"
     environment:
       VITE_SGP_API: "${VITE_SGP_API:-}"
+      VITE_BOLETIM_API: "${VITE_BOLETIM_API:-}"
       VITE_BOLETIM_VERSAO: "${VITE_BOLETIM_VERSAO:-0.0.1}"
     healthcheck:
       test:

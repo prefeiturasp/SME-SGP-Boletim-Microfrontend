@@ -1,4 +1,3 @@
-import { Alert } from "antd";
 import {
   faArrowLeft,
   faQuestionCircle,
@@ -8,19 +7,27 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { AntdAppProvider } from "../../core/config/antd-app-provider";
-import { confirmar } from "../../core/config/alertas";
-import { Modalidade, OPCAO_SELECIONAR_ALUNOS } from "../../core/constantes";
+import { confirmar, erro, sucesso } from "../../core/config/alertas";
+import {
+  Modalidade,
+  OPCAO_SELECIONAR_ALUNOS,
+  ehEjaOuCelp,
+  usaBoletimTempoReal,
+} from "../../core/constantes";
 import { definirTokenSgp } from "../../core/servico/apiSgp";
-import { definirUrlApiSgp } from "../../config";
+import { definirUrlApiBoletim, definirUrlApiSgp } from "../../config";
 import ListaAlunos from "../../componentes/alunos/ListaAlunos";
 import GerandoBoletins from "../../componentes/geracao/GerandoBoletins";
 import VisualizacaoBoletim from "../../componentes/geracao/VisualizacaoBoletim";
 import FiltroBoletim, {
   type ValoresFiltro,
 } from "../../componentes/filtro/FiltroBoletim";
-import { type DadosFiltroBoletim } from "../../services/boletimService";
 import {
-  criarBoletimPdfMock,
+  gerarPdfBoletim,
+  imprimirBoletim,
+  type DadosFiltroBoletim,
+} from "../../services/boletimService";
+import {
   nomeArquivoBoletim,
   type ResumoBoletim,
 } from "../../mocks/boletimPdf";
@@ -35,6 +42,7 @@ const resumoVazio: ResumoBoletim = {
   dre: "",
   ue: "",
   modalidade: "",
+  semestre: "",
   turma: "",
   estudantes: "",
   boletinsPorPagina: "",
@@ -56,23 +64,18 @@ const estadoInicial: DadosFiltroBoletim = {
 
 interface BoletimProps {
   apiUrl?: string;
+  boletimApiUrl?: string;
 }
 
-const criarArquivoPdf = async (resumo: ResumoBoletim) => {
-  const bytes = await criarBoletimPdfMock(resumo);
-  return new File(
-    [Uint8Array.from(bytes)],
-    nomeArquivoBoletim(resumo.anoLetivo),
-    { type: "application/pdf" },
-  );
-};
+const MENSAGEM_FILA =
+  "Solicitação de geração do relatório gerada com sucesso. Em breve você receberá uma notificação com o resultado.";
 
-const atualizarUrlPdf = (arquivo: File) => (urlAtual: string) => {
+const substituirUrlPdf = (arquivo: Blob) => (urlAtual: string) => {
   if (urlAtual) URL.revokeObjectURL(urlAtual);
   return URL.createObjectURL(arquivo);
 };
 
-const Boletim = ({ apiUrl }: BoletimProps) => {
+const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
   const navigate = useNavigate();
   const usuario = useSelector((state: RootState) => state.usuario);
   const rotaAtiva = useSelector(
@@ -91,8 +94,10 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
   const [etapa, setEtapa] = useState<EtapaBoletim>("filtros");
   const [progresso, setProgresso] = useState(0);
   const [pdfUrl, setPdfUrl] = useState("");
+  const [nomeArquivo, setNomeArquivo] = useState("");
 
   if (apiUrl) definirUrlApiSgp(apiUrl);
+  if (boletimApiUrl) definirUrlApiBoletim(boletimApiUrl);
   definirTokenSgp(usuario?.token);
 
   const selecionarAlunos = Boolean(
@@ -139,6 +144,9 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
       dre: valoresFiltro.dreNome || "",
       ue: valoresFiltro.ueNome || "",
       modalidade: valoresFiltro.modalidadeNome || "",
+      semestre: ehEjaOuCelp(valoresFiltro.modalidadeId)
+        ? String(valoresFiltro.semestre || "")
+        : "",
       turma: valoresFiltro.turmaNome || "",
       estudantes:
         valoresFiltro.opcaoEstudanteId === OPCAO_SELECIONAR_ALUNOS
@@ -174,13 +182,29 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
     }
   };
 
-  const onClickGerar = () => {
+  const onClickGerar = async () => {
     const estudantes =
       filtro.opcaoEstudanteId === OPCAO_SELECIONAR_ALUNOS
         ? `${itensSelecionados.length} selecionado(s)`
         : resumo.estudantes || "Todos";
-    setResumoExibido({ ...resumo, estudantes });
+    const resumoAtual = { ...resumo, estudantes };
+    setResumoExibido(resumoAtual);
     setClicouBotaoGerar(true);
+
+    if (!usaBoletimTempoReal(filtro.anoLetivo)) {
+      const resultado = await imprimirBoletim({
+        ...filtro,
+        alunosCodigo: itensSelecionados,
+      });
+      if ("erro" in resultado && resultado.erro) {
+        erro("Não foi possível solicitar a impressão do Boletim");
+        return;
+      }
+      sucesso(MENSAGEM_FILA);
+      return;
+    }
+
+    setNomeArquivo(nomeArquivoBoletim(resumoAtual.anoLetivo));
     setProgresso(0);
     setEtapa("gerando");
   };
@@ -189,7 +213,7 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
     if (!pdfUrl) return;
     const link = document.createElement("a");
     link.href = pdfUrl;
-    link.download = nomeArquivoBoletim(resumoExibido.anoLetivo);
+    link.download = nomeArquivo || nomeArquivoBoletim(resumoExibido.anoLetivo);
     link.click();
   };
 
@@ -197,39 +221,48 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
     if (etapa !== "gerando") return;
 
     let ativo = true;
-    const inicio = Date.now();
-    const duracao = 2200;
     let quadro = 0;
-
-    const concluirGeracao = async () => {
-      try {
-        const arquivo = await criarArquivoPdf(resumoExibido);
-        if (!ativo) return;
-        setPdfUrl(atualizarUrlPdf(arquivo));
-        setEtapa("visualizacao");
-      } catch {
-        if (ativo) setEtapa("filtros");
-      }
-    };
+    const inicio = Date.now();
+    const controle = new AbortController();
 
     const animar = () => {
-      const percentual = Math.min(100, ((Date.now() - inicio) / duracao) * 100);
       if (!ativo) return;
-      setProgresso(percentual);
-      if (percentual < 100) {
-        quadro = requestAnimationFrame(animar);
+      const decorrido = Date.now() - inicio;
+      setProgresso(Math.min(90, (decorrido / 8000) * 90));
+      quadro = requestAnimationFrame(animar);
+    };
+
+    const concluirGeracao = async () => {
+      const resultado = await gerarPdfBoletim(
+        filtro,
+        itensSelecionados,
+        controle.signal,
+      );
+      if (!ativo || resultado.cancelado) return;
+
+      if (resultado.erro || !resultado.arquivo) {
+        erro(resultado.mensagem || "Não foi possível gerar o boletim.");
+        setClicouBotaoGerar(false);
+        setProgresso(0);
+        setEtapa("filtros");
         return;
       }
 
-      void concluirGeracao();
+      if (resultado.nomeArquivo) setNomeArquivo(resultado.nomeArquivo);
+      setPdfUrl(substituirUrlPdf(resultado.arquivo));
+      setProgresso(100);
+      setEtapa("visualizacao");
     };
 
     quadro = requestAnimationFrame(animar);
+    void concluirGeracao();
+
     return () => {
       ativo = false;
+      controle.abort();
       cancelAnimationFrame(quadro);
     };
-  }, [etapa, resumoExibido]);
+  }, [etapa, filtro, itensSelecionados]);
 
   useEffect(() => {
     const temSemestreOuNaoEja =
@@ -256,12 +289,13 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
     <AntdAppProvider>
       <div className="boletim-pagina">
         {Number(filtro.modalidade) === Modalidade.INFANTIL && (
-          <Alert
-            className="alerta-infantil"
-            type="warning"
-            showIcon
-            message="Esta interface não está disponível para turmas da educação infantil"
-          />
+          <div
+            id="alerta-modalidade-infantil"
+            className="alert alert-warning alert-dismissible fade show text-center alerta-modalidade-infantil"
+            role="alert"
+          >
+            <b>Esta interface não está disponível para turmas da educação infantil</b>
+          </div>
         )}
 
         <header className="boletim-cabecalho">
@@ -343,7 +377,7 @@ const Boletim = ({ apiUrl }: BoletimProps) => {
           <VisualizacaoBoletim
             resumo={resumoExibido}
             pdfUrl={pdfUrl}
-            nomeArquivo={nomeArquivoBoletim(resumoExibido.anoLetivo)}
+            nomeArquivo={nomeArquivo || nomeArquivoBoletim(resumoExibido.anoLetivo)}
           />
         )}
       </div>
