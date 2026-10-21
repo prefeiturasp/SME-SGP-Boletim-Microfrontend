@@ -38,4 +38,22 @@ describe("configuracao da API do SGP", () => {
 
     expect(getSgpApiUrl()).toBe("");
   });
+
+  it("prioriza a URL da API de boletim informada pelo host", async () => {
+    vi.stubEnv("VITE_BOLETIM_API", "https://variavel.exemplo");
+    vi.stubGlobal("__ENV__", { VITE_BOLETIM_API: "https://runtime.exemplo/" });
+    const { definirUrlApiBoletim, getBoletimApiUrl } = await import("./config");
+
+    definirUrlApiBoletim("https://host.exemplo/boletim/");
+
+    expect(getBoletimApiUrl()).toBe("https://host.exemplo/boletim");
+  });
+
+  it("usa a URL de boletim do runtime quando o host nao informa", async () => {
+    vi.stubEnv("VITE_BOLETIM_API", "https://variavel.exemplo");
+    vi.stubGlobal("__ENV__", { VITE_BOLETIM_API: "https://runtime.exemplo" });
+    const { getBoletimApiUrl } = await import("./config");
+
+    expect(getBoletimApiUrl()).toBe("https://runtime.exemplo");
+  });
 });

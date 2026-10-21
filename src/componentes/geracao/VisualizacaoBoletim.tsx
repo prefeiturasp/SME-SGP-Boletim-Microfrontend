@@ -21,6 +21,9 @@ const VisualizacaoBoletim = ({ resumo, pdfUrl, nomeArquivo }: VisualizacaoBoleti
         <ItemResumo rotulo="DRE" valor={resumo.dre} />
         <ItemResumo rotulo="UE" valor={resumo.ue} />
         <ItemResumo rotulo="Modalidade" valor={resumo.modalidade} />
+        {resumo.semestre ? (
+          <ItemResumo rotulo="Semestre" valor={resumo.semestre} />
+        ) : null}
         <ItemResumo rotulo="Turma" valor={resumo.turma} />
       </div>
       <div className="boletim-resumo-linha">
