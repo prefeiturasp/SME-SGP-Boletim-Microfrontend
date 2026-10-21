@@ -6,6 +6,7 @@ export interface ResumoBoletim {
   dre: string;
   ue: string;
   modalidade: string;
+  semestre?: string;
   turma: string;
   estudantes: string;
   boletinsPorPagina: string;

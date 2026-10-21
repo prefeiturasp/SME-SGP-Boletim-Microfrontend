@@ -23,6 +23,8 @@ describe("VisualizacaoBoletim", () => {
     );
 
     expect(screen.getByText("DRE Teste")).toBeTruthy();
+    expect(screen.getByText("Ano letivo:")).toBeTruthy();
+    expect(screen.getByText("2026")).toBeTruthy();
     expect(screen.getByTitle("boletim.pdf").getAttribute("src")).toBe(
       "blob:boletim",
     );
@@ -48,5 +50,29 @@ describe("VisualizacaoBoletim", () => {
     );
 
     expect(screen.getAllByText("-")).toHaveLength(9);
+  });
+
+  it("exibe o semestre quando ele faz parte do filtro", () => {
+    render(
+      <VisualizacaoBoletim
+        resumo={{
+          exibirHistorico: "Nao",
+          anoLetivo: "2026",
+          dre: "DRE",
+          ue: "UE",
+          modalidade: "EJA",
+          semestre: "1",
+          turma: "1A",
+          estudantes: "Todos",
+          boletinsPorPagina: "2",
+          imprimirInativos: "Nao",
+        }}
+        pdfUrl="blob:boletim"
+        nomeArquivo="boletim.pdf"
+      />,
+    );
+
+    expect(screen.getByText("Semestre:")).toBeTruthy();
+    expect(screen.getByText("1")).toBeTruthy();
   });
 });
