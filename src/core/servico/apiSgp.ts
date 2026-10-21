@@ -8,6 +8,8 @@ export const definirTokenSgp = (token?: string) => {
   tokenAtual = token || "";
 };
 
+export const obterTokenSgp = () => tokenAtual;
+
 const apiSgp = axios.create();
 
 const serializarValor = (valor: unknown) => {
