@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+interface ConfigRequisicao {
+  headers: Record<string, string | undefined>;
+  baseURL?: string;
+}
+
 interface ClienteHttp {
-  interceptor?: (config: {
-    headers: Record<string, string>;
-    baseURL?: string;
-  }) => unknown;
+  interceptor?: (config: ConfigRequisicao) => unknown;
   get: ReturnType<typeof vi.fn>;
   post: ReturnType<typeof vi.fn>;
 }
@@ -49,7 +51,7 @@ import { definirTokenSgp, getSgp, postSgp } from "./apiSgp";
 
 const clientePorUrl = (url: string) =>
   instancias.find((cliente) => {
-    const config = { headers: {} as Record<string, string> };
+    const config: ConfigRequisicao = { headers: {} };
     cliente.interceptor?.(config);
     return config.baseURL === url;
   });
@@ -66,7 +68,7 @@ describe("cliente da API de boletim", () => {
   it("envia o token e pede PDF quando o cabecalho ainda nao foi definido", () => {
     const cliente = clientePorUrl("https://boletim.exemplo");
     definirTokenSgp("token-boletim");
-    const config = { headers: {} as Record<string, string> };
+    const config: ConfigRequisicao = { headers: {} };
 
     cliente?.interceptor?.(config);
 
@@ -77,7 +79,7 @@ describe("cliente da API de boletim", () => {
 
   it("preserva o Accept informado e omite o token ausente", () => {
     const cliente = clientePorUrl("https://boletim.exemplo");
-    const config = { headers: { Accept: "application/json" } };
+    const config: ConfigRequisicao = { headers: { Accept: "application/json" } };
 
     cliente?.interceptor?.(config);
 
@@ -115,7 +117,7 @@ describe("cliente da API do SGP", () => {
   it("envia o token e pede JSON", () => {
     const cliente = clientePorUrl("https://sgp.exemplo");
     definirTokenSgp("token-sgp");
-    const config = { headers: {} as Record<string, string> };
+    const config: ConfigRequisicao = { headers: {} };
 
     cliente?.interceptor?.(config);
 
