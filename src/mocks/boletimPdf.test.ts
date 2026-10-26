@@ -4,7 +4,6 @@ import { criarBoletimPdfMock, nomeArquivoBoletim } from "./boletimPdf";
 describe("boletimPdf", () => {
   it("gera um documento PDF valido", async () => {
     const bytes = await criarBoletimPdfMock({
-      exibirHistorico: "Nao",
       anoLetivo: "2026",
       dre: "DRE",
       ue: "UE",
