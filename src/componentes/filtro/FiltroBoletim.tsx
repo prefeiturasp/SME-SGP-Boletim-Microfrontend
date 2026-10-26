@@ -1,4 +1,4 @@
-import { Checkbox, Radio } from "antd";
+import { Radio } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import SelectCampo from "../ui/SelectCampo";
 import {
@@ -406,24 +406,6 @@ const FiltroBoletim = ({
 
   return (
     <div className="filtros">
-      <div className="linha">
-        <div className="checkbox-historico">
-          <Checkbox
-            id="SGP_CHECKBOX_EXIBIR_HISTORICO"
-            checked={consideraHistorico}
-            onChange={(evento) => {
-              setConsideraHistorico(evento.target.checked);
-              limparCampos();
-              setDreCodigo(undefined);
-              setQuantidadeBoletimPorPagina("");
-              marcarEdicao();
-            }}
-          >
-            Exibir histórico?
-          </Checkbox>
-        </div>
-      </div>
-
       <div className="linha linha-anos">
         <SelectCampo
           id="SGP_SELECT_ANO_LETIVO"

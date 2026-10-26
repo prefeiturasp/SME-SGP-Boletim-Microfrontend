@@ -58,16 +58,6 @@
   border-color: #6933ff !important;
 }
 
-.checkbox-historico .ant-checkbox-checked .ant-checkbox-inner {
-  background-color: #6933ff;
-  border-color: #6933ff;
-}
-
-.checkbox-historico .ant-checkbox-wrapper:hover .ant-checkbox-inner,
-.checkbox-historico .ant-checkbox:hover .ant-checkbox-inner {
-  border-color: #6933ff;
-}
-
 .lista-alunos {
   padding-top: 1.5rem;
 }
