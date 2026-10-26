@@ -5,9 +5,11 @@ import { getSgp, postSgp } from "../core/servico/apiSgp";
 import { getBoletimApiUrl } from "../config";
 import {
   buscarAlunos,
+  formatarDataConsolidacao,
   gerarPdfBoletim,
   imprimirBoletim,
   montarParametrosPdf,
+  obterUltimaAtualizacao,
   type DadosFiltroBoletim,
 } from "./boletimService";
 
@@ -163,6 +165,55 @@ describe("boletimService", () => {
       erro: true,
       mensagem: "Filtro invalido",
     });
+  });
+
+  it("formata a data da ultima consolidacao no horario de Sao Paulo", () => {
+    expect(formatarDataConsolidacao("2026-09-30T11:45:00Z")).toBe(
+      "30/09/2026 - 08:45",
+    );
+    expect(formatarDataConsolidacao("2026-09-30T08:45:00")).toBe(
+      "30/09/2026 - 08:45",
+    );
+    expect(formatarDataConsolidacao("2026-09-30T08:45:00.123456-03:00")).toBe(
+      "30/09/2026 - 08:45",
+    );
+    expect(formatarDataConsolidacao(null)).toBe("");
+    expect(formatarDataConsolidacao("sem data")).toBe("");
+  });
+
+  it("consulta a ultima atualizacao no recorte do boletim", async () => {
+    vi.mocked(getBoletim).mockResolvedValue({
+      data: { ultimaAtualizacao: "2026-09-30T11:45:00Z" },
+    } as never);
+
+    await expect(obterUltimaAtualizacao(filtro, ["10"])).resolves.toBe(
+      "30/09/2026 - 08:45",
+    );
+    expect(getBoletim).toHaveBeenCalledWith(
+      "api/boletim/ultima-atualizacao/",
+      expect.objectContaining({
+        headers: { Accept: "application/json" },
+        params: expect.objectContaining({
+          ano_letivo: 2026,
+          turma_codigo: "3",
+          alunos_codigo: [10],
+        }),
+      }),
+    );
+  });
+
+  it("retorna vazio quando a ultima atualizacao nao pode ser consultada", async () => {
+    vi.mocked(getBoletimApiUrl).mockReturnValueOnce("");
+    await expect(obterUltimaAtualizacao(filtro, [])).resolves.toBe("");
+    expect(getBoletim).not.toHaveBeenCalled();
+
+    vi.mocked(getBoletim).mockRejectedValueOnce(new Error("falha"));
+    await expect(obterUltimaAtualizacao(filtro, [])).resolves.toBe("");
+
+    vi.mocked(getBoletim).mockResolvedValueOnce({
+      data: { ultimaAtualizacao: null },
+    } as never);
+    await expect(obterUltimaAtualizacao(filtro, [])).resolves.toBe("");
   });
 
   it("avisa quando a URL da API de boletim nao foi configurada", async () => {

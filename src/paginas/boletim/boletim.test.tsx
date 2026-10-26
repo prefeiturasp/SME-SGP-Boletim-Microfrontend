@@ -1,7 +1,11 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { confirmar, erro, sucesso } from "../../core/config/alertas";
-import { gerarPdfBoletim, imprimirBoletim } from "../../services/boletimService";
+import {
+  gerarPdfBoletim,
+  imprimirBoletim,
+  obterUltimaAtualizacao,
+} from "../../services/boletimService";
 import Boletim from "./boletim";
 
 const navegar = vi.fn();
@@ -44,6 +48,7 @@ vi.mock("../../core/config/alertas", () => ({
 vi.mock("../../services/boletimService", () => ({
   gerarPdfBoletim: vi.fn(),
   imprimirBoletim: vi.fn(),
+  obterUltimaAtualizacao: vi.fn(),
 }));
 
 vi.mock("../../componentes/filtro/FiltroBoletim", () => {
@@ -116,15 +121,18 @@ vi.mock("../../componentes/geracao/VisualizacaoBoletim", () => ({
   default: ({
     nomeArquivo,
     resumo,
+    dataConsolidacao,
   }: {
     nomeArquivo: string;
     resumo: { dre: string; anoLetivo: string; turma: string };
+    dataConsolidacao?: string;
   }) => (
     <div>
       Visualizando {nomeArquivo}
       <span>{resumo.anoLetivo}</span>
       <span>{resumo.dre}</span>
       <span>{resumo.turma}</span>
+      <span>{dataConsolidacao}</span>
     </div>
   ),
 }));
@@ -152,6 +160,7 @@ describe("Boletim", () => {
         }),
     );
     vi.mocked(imprimirBoletim).mockResolvedValue({ data: { id: 1 } } as never);
+    vi.mocked(obterUltimaAtualizacao).mockResolvedValue("30/09/2026 - 08:45");
   });
 
   it("aplica filtros, gera e exibe o boletim de 2026 com os dados do filtro", async () => {
@@ -173,6 +182,7 @@ describe("Boletim", () => {
     expect(screen.getByText("2026")).toBeTruthy();
     expect(screen.getByText("DRE")).toBeTruthy();
     expect(screen.getByText("1A")).toBeTruthy();
+    expect(screen.getByText("30/09/2026 - 08:45")).toBeTruthy();
     expect(gerarPdfBoletim).toHaveBeenCalledWith(
       expect.objectContaining({
         anoLetivo: "2026",
@@ -181,6 +191,11 @@ describe("Boletim", () => {
         turmaCodigo: "3",
         quantidadeBoletimPorPagina: "2",
       }),
+      [],
+      expect.any(AbortSignal),
+    );
+    expect(obterUltimaAtualizacao).toHaveBeenCalledWith(
+      expect.objectContaining({ anoLetivo: "2026" }),
       [],
       expect.any(AbortSignal),
     );
@@ -246,6 +261,28 @@ describe("Boletim", () => {
     );
     expect(aviso.className).toContain("alert-warning");
     expect(aviso.className).toContain("text-center");
+  });
+
+  it("alterar filtros retorna a pesquisa com o mesmo comportamento do voltar", async () => {
+    render(<Boletim />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Aplicar filtro" }));
+    const gerar = screen.getByRole("button", { name: "Gerar" });
+    await waitFor(() => expect((gerar as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(gerar);
+    await act(async () => {
+      concluirPdf({
+        arquivo: new Blob(["pdf"], { type: "application/pdf" }),
+        nomeArquivo: "boletim-escolar-2026.pdf",
+      });
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Alterar Filtros" }));
+
+    expect(navegar).not.toHaveBeenCalled();
+    expect(screen.queryByText(/Visualizando/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Gerar" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Alterar Filtros" })).toBeNull();
   });
 
   it("navega ao voltar e confirma o cancelamento da edicao", async () => {

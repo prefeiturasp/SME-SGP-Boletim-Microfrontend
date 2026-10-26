@@ -1,7 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 export interface ResumoBoletim {
-  exibirHistorico: string;
   anoLetivo: string;
   dre: string;
   ue: string;

@@ -25,6 +25,7 @@ import FiltroBoletim, {
 import {
   gerarPdfBoletim,
   imprimirBoletim,
+  obterUltimaAtualizacao,
   type DadosFiltroBoletim,
 } from "../../services/boletimService";
 import {
@@ -37,7 +38,6 @@ import "./boletim.css";
 type EtapaBoletim = "filtros" | "gerando" | "visualizacao";
 
 const resumoVazio: ResumoBoletim = {
-  exibirHistorico: "Não",
   anoLetivo: "",
   dre: "",
   ue: "",
@@ -95,6 +95,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
   const [progresso, setProgresso] = useState(0);
   const [pdfUrl, setPdfUrl] = useState("");
   const [nomeArquivo, setNomeArquivo] = useState("");
+  const [dataConsolidacao, setDataConsolidacao] = useState("");
 
   if (apiUrl) definirUrlApiSgp(apiUrl);
   if (boletimApiUrl) definirUrlApiBoletim(boletimApiUrl);
@@ -139,7 +140,6 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
       consideraInativo: valoresFiltro.imprimirEstudantesInativos,
     });
     setResumo({
-      exibirHistorico: valoresFiltro.consideraHistorico ? "Sim" : "Não",
       anoLetivo: valoresFiltro.anoLetivo || "",
       dre: valoresFiltro.dreNome || "",
       ue: valoresFiltro.ueNome || "",
@@ -164,7 +164,13 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
     setEtapa("filtros");
     setProgresso(0);
     setClicouBotaoGerar(false);
+    setDataConsolidacao("");
   }, []);
+
+  const onClickVoltar = () => {
+    if (etapa === "filtros") navigate("/");
+    else voltarParaFiltros();
+  };
 
   const onClickCancelar = async () => {
     if (etapa === "gerando") {
@@ -233,11 +239,10 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
     };
 
     const concluirGeracao = async () => {
-      const resultado = await gerarPdfBoletim(
-        filtro,
-        itensSelecionados,
-        controle.signal,
-      );
+      const [resultado, atualizacao] = await Promise.all([
+        gerarPdfBoletim(filtro, itensSelecionados, controle.signal),
+        obterUltimaAtualizacao(filtro, itensSelecionados, controle.signal),
+      ]);
       if (!ativo || resultado.cancelado) return;
 
       if (resultado.erro || !resultado.arquivo) {
@@ -249,6 +254,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
       }
 
       if (resultado.nomeArquivo) setNomeArquivo(resultado.nomeArquivo);
+      setDataConsolidacao(atualizacao);
       setPdfUrl(substituirUrlPdf(resultado.arquivo));
       setProgresso(100);
       setEtapa("visualizacao");
@@ -318,17 +324,24 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
               id="SGP_BUTTON_VOLTAR"
               className="btn-acao btn-azul"
               title="Voltar"
-              onClick={() => {
-                if (etapa === "filtros") navigate("/");
-                else voltarParaFiltros();
-              }}
+              onClick={onClickVoltar}
             >
               <FontAwesomeIcon icon={faArrowLeft} className="" />
             </button>
             {etapa === "visualizacao" ? (
-              <button type="button" className="btn-acao btn-roxo" onClick={baixarPdf}>
-                Baixar PDF
-              </button>
+              <>
+                <button
+                  type="button"
+                  id="SGP_BUTTON_ALTERAR_FILTROS"
+                  className="btn-acao btn-roxo"
+                  onClick={onClickVoltar}
+                >
+                  Alterar Filtros
+                </button>
+                <button type="button" className="btn-acao btn-roxo" onClick={baixarPdf}>
+                  Baixar PDF
+                </button>
+              </>
             ) : (
               <>
                 <button
@@ -378,6 +391,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
             resumo={resumoExibido}
             pdfUrl={pdfUrl}
             nomeArquivo={nomeArquivo || nomeArquivoBoletim(resumoExibido.anoLetivo)}
+            dataConsolidacao={dataConsolidacao}
           />
         )}
       </div>

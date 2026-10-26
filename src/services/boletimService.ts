@@ -90,6 +90,61 @@ export const montarParametrosPdf = (
   return parametros;
 };
 
+export interface UltimaAtualizacaoResposta {
+  ultimaAtualizacao?: string | null;
+}
+
+const FUSO_HORARIO = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+const normalizarInstante = (valor: string) => {
+  const texto = valor.trim().replace(" ", "T").replace(/(\.\d{3})\d+/, "$1");
+  if (!texto) return "";
+  if (FUSO_HORARIO.test(texto)) return texto;
+  return `${texto}-03:00`;
+};
+
+export const formatarDataConsolidacao = (valor?: string | null) => {
+  if (!valor) return "";
+  const data = new Date(normalizarInstante(valor));
+  if (Number.isNaN(data.getTime())) return "";
+
+  const formatar = (opcoes: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      ...opcoes,
+    }).format(data);
+
+  const dia = formatar({ day: "2-digit", month: "2-digit", year: "numeric" });
+  const hora = formatar({
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  });
+  return `${dia} - ${hora}`;
+};
+
+export const obterUltimaAtualizacao = async (
+  filtro: DadosFiltroBoletim,
+  alunosCodigo: string[],
+  signal?: AbortSignal,
+) => {
+  if (!getBoletimApiUrl()) return "";
+
+  try {
+    const resposta = await getBoletim<UltimaAtualizacaoResposta>(
+      "api/boletim/ultima-atualizacao/",
+      {
+        params: montarParametrosPdf(filtro, alunosCodigo),
+        headers: { Accept: "application/json" },
+        signal,
+      },
+    );
+    return formatarDataConsolidacao(resposta.data?.ultimaAtualizacao);
+  } catch {
+    return "";
+  }
+};
+
 const nomeArquivoPadrao = (anoLetivo?: string) =>
   `boletim-escolar-${anoLetivo || "2026"}.pdf`;
 
