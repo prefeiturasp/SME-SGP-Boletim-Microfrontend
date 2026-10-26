@@ -164,9 +164,8 @@ describe("FiltroBoletim", () => {
       target: { value: "2" },
     });
     expect(setModoEdicao).toHaveBeenCalledWith(true);
-
-    fireEvent.click(document.querySelector("#SGP_CHECKBOX_EXIBIR_HISTORICO")!);
     expect(setFiltrou).toHaveBeenCalledWith(false);
+    expect(screen.queryByText("Exibir histórico?")).toBeNull();
   });
 
   it("permite selecionar todos os agrupamentos de turma", async () => {
