@@ -168,7 +168,7 @@ describe("FiltroBoletim", () => {
     expect(screen.queryByText("Exibir histórico?")).toBeNull();
   });
 
-  it("nao inclui a opcao todas quando existem varias turmas", async () => {
+  it("nao inclui a opcao todas no ano letivo atual", async () => {
     vi.mocked(listarTurmas).mockResolvedValue([
       { nome: "1A", codigo: "3", nomeFiltro: "1A" },
       { nome: "1B", codigo: "4", nomeFiltro: "1B" },
@@ -187,9 +187,45 @@ describe("FiltroBoletim", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("option", { name: "1A" })).toBeTruthy(),
+      { timeout: 5000 },
     );
     expect(screen.queryByRole("option", { name: "Todas" })).toBeNull();
     expect(screen.getByRole("option", { name: "1B" })).toBeTruthy();
+  });
+
+  it("permite selecionar todas as turmas em ano letivo anterior", async () => {
+    vi.mocked(listarAnosLetivos).mockResolvedValue([
+      { desc: "2025", valor: "2025" },
+    ]);
+    vi.mocked(listarTurmas).mockResolvedValue([
+      { nome: "1A", codigo: "3", nomeFiltro: "1A" },
+      { nome: "1B", codigo: "4", nomeFiltro: "1B" },
+    ]);
+
+    render(
+      <FiltroBoletim
+        onFiltrar={vi.fn()}
+        filtrou={false}
+        setFiltrou={vi.fn()}
+        setModoEdicao={vi.fn()}
+        cancelou={false}
+        setCancelou={vi.fn()}
+      />,
+    );
+
+    const opcaoTodas = await screen.findByRole(
+      "option",
+      { name: "Todas" },
+      { timeout: 5000 },
+    );
+    expect(opcaoTodas).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Turma"), {
+      target: { value: "-99" },
+    });
+    expect(
+      (screen.getByLabelText("Estudante(s)") as HTMLSelectElement).disabled,
+    ).toBe(true);
   });
 
   it("exibe falhas ao carregar filtros dependentes", async () => {

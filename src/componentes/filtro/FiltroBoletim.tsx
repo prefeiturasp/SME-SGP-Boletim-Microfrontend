@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import SelectCampo from "../ui/SelectCampo";
 import {
   OPCAO_SELECIONAR_ALUNOS,
+  OPCAO_TODOS,
   OPCAO_TODOS_ESTUDANTES,
   Modalidade,
   ehEjaOuCelp,
@@ -98,6 +99,7 @@ const FiltroBoletim = ({
   const [carregandoTurmas, setCarregandoTurmas] = useState(false);
   const [carregandoUes, setCarregandoUes] = useState(false);
   const [consideraHistorico, setConsideraHistorico] = useState(false);
+  const [desabilitarEstudante, setDesabilitarEstudante] = useState(false);
   const [dreCodigo, setDreCodigo] = useState<string>();
   const [listaAnosLetivo, setListaAnosLetivo] = useState<OpcaoFiltro[]>([]);
   const [listaDres, setListaDres] = useState<OpcaoFiltro[]>([]);
@@ -333,13 +335,19 @@ const FiltroBoletim = ({
       });
 
       if (retorno.length) {
-        const lista: OpcaoFiltro[] = retorno.map((item) => ({
-          desc: item.nome,
-          valor: String(item.codigo),
-          id: item.id,
-          ano: item.ano,
-          nomeFiltro: item.nomeFiltro,
-        }));
+        const lista: OpcaoFiltro[] = [];
+        if (retorno.length > 1 && anoLetivo !== anoAtual) {
+          lista.push({ valor: OPCAO_TODOS, nomeFiltro: "Todas" });
+        }
+        retorno.forEach((item) =>
+          lista.push({
+            desc: item.nome,
+            valor: String(item.codigo),
+            id: item.id,
+            ano: item.ano,
+            nomeFiltro: item.nomeFiltro,
+          }),
+        );
         setListaTurmas(lista);
         if (lista.length === 1) {
           setTurmasId(lista[0].valor);
@@ -354,7 +362,16 @@ const FiltroBoletim = ({
     } finally {
       setCarregandoTurmas(false);
     }
-  }, [ejaOuCelp, ueCodigo, dreCodigo, consideraHistorico, anoLetivo, modalidadeId, semestre]);
+  }, [
+    ejaOuCelp,
+    ueCodigo,
+    dreCodigo,
+    consideraHistorico,
+    anoLetivo,
+    anoAtual,
+    modalidadeId,
+    semestre,
+  ]);
 
   useEffect(() => {
     if (ueCodigo && modalidadeId) {
@@ -494,8 +511,10 @@ const FiltroBoletim = ({
           placeholder="Turma"
           showSearch
           onChange={(valor) => {
+            const temOpcaoTodas = String(valor) === OPCAO_TODOS;
             setTurmasId(valor);
             setOpcaoEstudanteId(OPCAO_TODOS_ESTUDANTES);
+            setDesabilitarEstudante(temOpcaoTodas);
             setQuantidadeBoletimPorPagina("");
             marcarEdicao();
           }}
@@ -508,7 +527,7 @@ const FiltroBoletim = ({
           label="Estudante(s)"
           opcoes={opcoesEstudantes}
           valor={opcaoEstudanteId}
-          disabled={!turmasId}
+          disabled={!turmasId || desabilitarEstudante}
           placeholder="Estudante(s)"
           onChange={(valor) => {
             setFiltrou(false);
