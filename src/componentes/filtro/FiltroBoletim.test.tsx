@@ -168,7 +168,7 @@ describe("FiltroBoletim", () => {
     expect(screen.queryByText("Exibir histórico?")).toBeNull();
   });
 
-  it("permite selecionar todos os agrupamentos de turma", async () => {
+  it("nao inclui a opcao todas quando existem varias turmas", async () => {
     vi.mocked(listarTurmas).mockResolvedValue([
       { nome: "1A", codigo: "3", nomeFiltro: "1A" },
       { nome: "1B", codigo: "4", nomeFiltro: "1B" },
@@ -186,16 +186,10 @@ describe("FiltroBoletim", () => {
     );
 
     await waitFor(() =>
-      expect((screen.getByLabelText("Turma") as HTMLSelectElement).disabled).toBe(
-        false,
-      ),
+      expect(screen.getByRole("option", { name: "1A" })).toBeTruthy(),
     );
-    fireEvent.change(screen.getByLabelText("Turma"), {
-      target: { value: "-99" },
-    });
-    expect(
-      (screen.getByLabelText("Estudante(s)") as HTMLSelectElement).disabled,
-    ).toBe(true);
+    expect(screen.queryByRole("option", { name: "Todas" })).toBeNull();
+    expect(screen.getByRole("option", { name: "1B" })).toBeTruthy();
   });
 
   it("exibe falhas ao carregar filtros dependentes", async () => {
