@@ -336,7 +336,7 @@ const FiltroBoletim = ({
 
       if (retorno.length) {
         const lista: OpcaoFiltro[] = [];
-        if (retorno.length > 1) {
+        if (retorno.length > 1 && anoLetivo !== anoAtual) {
           lista.push({ valor: OPCAO_TODOS, nomeFiltro: "Todas" });
         }
         retorno.forEach((item) =>
@@ -362,7 +362,16 @@ const FiltroBoletim = ({
     } finally {
       setCarregandoTurmas(false);
     }
-  }, [ejaOuCelp, ueCodigo, dreCodigo, consideraHistorico, anoLetivo, modalidadeId, semestre]);
+  }, [
+    ejaOuCelp,
+    ueCodigo,
+    dreCodigo,
+    consideraHistorico,
+    anoLetivo,
+    anoAtual,
+    modalidadeId,
+    semestre,
+  ]);
 
   useEffect(() => {
     if (ueCodigo && modalidadeId) {
