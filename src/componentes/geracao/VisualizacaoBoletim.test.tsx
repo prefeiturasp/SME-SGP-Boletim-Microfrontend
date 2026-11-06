@@ -43,7 +43,16 @@ describe("VisualizacaoBoletim", () => {
     expect(linhas[1].textContent).not.toContain("Semestre:");
     expect(linhas[2].textContent).toContain("Boletins por página:");
     expect(linhas[2].textContent).toContain("Imprimir estudantes inativos:");
-    expect(screen.getByText("Dados consolidados em: 30/09/2026 - 08:45")).toBeTruthy();
+    const valores = linhas[0].querySelectorAll("strong");
+    expect(valores[0].textContent).toBe("2026");
+    expect(valores[1].textContent).toBe("DRE Teste");
+    expect(valores[2].textContent).toBe("UE Teste");
+    expect(document.querySelector(".boletim-consolidacao-chip")?.textContent).toContain(
+      "Dados consolidados em: 30/09/2026 - 08:45",
+    );
+    expect(
+      screen.getByText("30/09/2026 - 08:45", { selector: "strong" }),
+    ).toBeTruthy();
     expect(screen.getByTitle("boletim.pdf").getAttribute("src")).toBe("blob:boletim");
 
     await usuario.hover(
@@ -76,8 +85,12 @@ describe("VisualizacaoBoletim", () => {
       />,
     );
 
-    expect(screen.getAllByText("-")).toHaveLength(7);
-    expect(screen.getByText("Dados consolidados em: -")).toBeTruthy();
+    const valoresResumo = document.querySelectorAll(".boletim-resumo-item strong");
+    expect(valoresResumo).toHaveLength(7);
+    valoresResumo.forEach((valor) => expect(valor.textContent).toBe("-"));
+    expect(document.querySelector(".boletim-consolidacao-chip strong")?.textContent).toBe(
+      "-",
+    );
   });
 
   it("exibe o semestre quando a modalidade selecionada o exige", () => {

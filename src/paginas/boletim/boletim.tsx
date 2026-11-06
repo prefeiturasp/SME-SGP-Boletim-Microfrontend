@@ -11,7 +11,6 @@ import { confirmar, erro, sucesso } from "../../core/config/alertas";
 import {
   Modalidade,
   OPCAO_SELECIONAR_ALUNOS,
-  ehEjaOuCelp,
   usaBoletimTempoReal,
 } from "../../core/constantes";
 import { definirTokenSgp } from "../../core/servico/apiSgp";
@@ -23,9 +22,8 @@ import FiltroBoletim, {
   type ValoresFiltro,
 } from "../../componentes/filtro/FiltroBoletim";
 import {
-  gerarPdfBoletim,
+  buscarContextoImpressaoBoletim,
   imprimirBoletim,
-  obterUltimaAtualizacao,
   type DadosFiltroBoletim,
 } from "../../services/boletimService";
 import {
@@ -33,9 +31,11 @@ import {
   type ResumoBoletim,
 } from "../../mocks/boletimPdf";
 import type { RootState } from "../../types/redux";
+import type { MensagemWorkerSaida } from "../../types/boletimImpressao";
 import "./boletim.css";
 
 type EtapaBoletim = "filtros" | "gerando" | "visualizacao";
+type FaseGeracao = "buscando-dados" | "gerando-pdf";
 
 const resumoVazio: ResumoBoletim = {
   anoLetivo: "",
@@ -92,6 +92,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
   const [resumo, setResumo] = useState<ResumoBoletim>(resumoVazio);
   const [resumoExibido, setResumoExibido] = useState<ResumoBoletim>(resumoVazio);
   const [etapa, setEtapa] = useState<EtapaBoletim>("filtros");
+  const [faseGeracao, setFaseGeracao] = useState<FaseGeracao>("buscando-dados");
   const [progresso, setProgresso] = useState(0);
   const [pdfUrl, setPdfUrl] = useState("");
   const [nomeArquivo, setNomeArquivo] = useState("");
@@ -144,9 +145,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
       dre: valoresFiltro.dreNome || "",
       ue: valoresFiltro.ueNome || "",
       modalidade: valoresFiltro.modalidadeNome || "",
-      semestre: ehEjaOuCelp(valoresFiltro.modalidadeId)
-        ? String(valoresFiltro.semestre || "")
-        : "",
+      semestre: String(valoresFiltro.semestre || ""),
       turma: valoresFiltro.turmaNome || "",
       estudantes:
         valoresFiltro.opcaoEstudanteId === OPCAO_SELECIONAR_ALUNOS
@@ -162,6 +161,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
 
   const voltarParaFiltros = useCallback(() => {
     setEtapa("filtros");
+    setFaseGeracao("buscando-dados");
     setProgresso(0);
     setClicouBotaoGerar(false);
     setDataConsolidacao("");
@@ -211,6 +211,7 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
     }
 
     setNomeArquivo(nomeArquivoBoletim(resumoAtual.anoLetivo));
+    setFaseGeracao("buscando-dados");
     setProgresso(0);
     setEtapa("gerando");
   };
@@ -227,25 +228,18 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
     if (etapa !== "gerando") return;
 
     let ativo = true;
-    let quadro = 0;
-    const inicio = Date.now();
     const controle = new AbortController();
-
-    const animar = () => {
-      if (!ativo) return;
-      const decorrido = Date.now() - inicio;
-      setProgresso(Math.min(90, (decorrido / 8000) * 90));
-      quadro = requestAnimationFrame(animar);
-    };
+    let worker: Worker | undefined;
 
     const concluirGeracao = async () => {
-      const [resultado, atualizacao] = await Promise.all([
-        gerarPdfBoletim(filtro, itensSelecionados, controle.signal),
-        obterUltimaAtualizacao(filtro, itensSelecionados, controle.signal),
-      ]);
+      const resultado = await buscarContextoImpressaoBoletim(
+        filtro,
+        itensSelecionados,
+        controle.signal,
+      );
       if (!ativo || resultado.cancelado) return;
 
-      if (resultado.erro || !resultado.arquivo) {
+      if (resultado.erro || !resultado.contexto) {
         erro(resultado.mensagem || "Não foi possível gerar o boletim.");
         setClicouBotaoGerar(false);
         setProgresso(0);
@@ -253,20 +247,54 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
         return;
       }
 
-      if (resultado.nomeArquivo) setNomeArquivo(resultado.nomeArquivo);
-      setDataConsolidacao(atualizacao);
-      setPdfUrl(substituirUrlPdf(resultado.arquivo));
-      setProgresso(100);
-      setEtapa("visualizacao");
+      setFaseGeracao("gerando-pdf");
+      setProgresso(0);
+      setDataConsolidacao(
+        resultado.contexto.dados_atualizados_em?.replace(" ", " - ") || "",
+      );
+      const { default: BoletimPdfWorker } = await import(
+        "../../workers/boletimPdf.worker?worker&inline"
+      );
+      if (!ativo) return;
+      const workerAtual = new BoletimPdfWorker();
+      worker = workerAtual;
+      workerAtual.onmessage = (evento: MessageEvent<MensagemWorkerSaida>) => {
+        if (!ativo) return;
+        if (evento.data.tipo === "progresso") {
+          setProgresso(evento.data.valor);
+          return;
+        }
+        if (evento.data.tipo === "erro") {
+          erro(evento.data.mensagem);
+          setClicouBotaoGerar(false);
+          setProgresso(0);
+          setEtapa("filtros");
+          return;
+        }
+        const arquivo = new Blob([evento.data.arquivo], {
+          type: "application/pdf",
+        });
+        setPdfUrl(substituirUrlPdf(arquivo));
+        setProgresso(100);
+        setEtapa("visualizacao");
+        workerAtual.terminate();
+      };
+      workerAtual.onerror = () => {
+        if (!ativo) return;
+        erro("Não foi possível gerar o boletim.");
+        setClicouBotaoGerar(false);
+        setProgresso(0);
+        setEtapa("filtros");
+      };
+      workerAtual.postMessage({ tipo: "gerar", contexto: resultado.contexto });
     };
 
-    quadro = requestAnimationFrame(animar);
     void concluirGeracao();
 
     return () => {
       ativo = false;
       controle.abort();
-      cancelAnimationFrame(quadro);
+      worker?.terminate();
     };
   }, [etapa, filtro, itensSelecionados]);
 
@@ -385,7 +413,9 @@ const Boletim = ({ apiUrl, boletimApiUrl }: BoletimProps) => {
           </section>
         </div>
 
-        {etapa === "gerando" && <GerandoBoletins progresso={progresso} />}
+        {etapa === "gerando" && (
+          <GerandoBoletins fase={faseGeracao} progresso={progresso} />
+        )}
         {etapa === "visualizacao" && pdfUrl && (
           <VisualizacaoBoletim
             resumo={resumoExibido}

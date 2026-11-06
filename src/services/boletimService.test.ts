@@ -6,7 +6,7 @@ import { getBoletimApiUrl } from "../config";
 import {
   buscarAlunos,
   formatarDataConsolidacao,
-  gerarPdfBoletim,
+  buscarContextoImpressaoBoletim,
   imprimirBoletim,
   montarParametrosPdf,
   obterUltimaAtualizacao,
@@ -113,25 +113,25 @@ describe("boletimService", () => {
     ).not.toHaveProperty("alunos_codigo");
   });
 
-  it("retorna o PDF gerado pela API", async () => {
-    const arquivo = new Blob(["pdf"], { type: "application/pdf" });
+  it("retorna o contexto de impressao gerado pela API", async () => {
+    const contexto = {
+      paginas: [],
+      boletins_por_pagina: 2,
+      dados_atualizados_em: null,
+      data_impressao: "03/11/2026 10:00",
+      total_paginas: 0,
+    } as const;
     vi.mocked(getBoletim).mockResolvedValue({
       status: 200,
-      data: arquivo,
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": "attachment; filename=\"boletim-turma.pdf\"",
-      },
+      data: contexto,
+      headers: { "content-type": "application/json" },
     } as never);
 
-    await expect(gerarPdfBoletim(filtro, [])).resolves.toEqual({
-      arquivo,
-      nomeArquivo: "boletim-turma.pdf",
-    });
+    await expect(buscarContextoImpressaoBoletim(filtro, [])).resolves.toEqual({ contexto });
     expect(getBoletim).toHaveBeenCalledWith(
-      "api/boletim/pdf/",
+      "api/boletim/",
       expect.objectContaining({
-        responseType: "blob",
+        headers: { Accept: "application/json" },
         params: expect.objectContaining({ ano_letivo: 2026, turma_codigo: "3" }),
       }),
     );
@@ -140,11 +140,11 @@ describe("boletimService", () => {
   it("usa a mensagem do cabecalho quando nao ha alunos", async () => {
     vi.mocked(getBoletim).mockResolvedValue({
       status: 204,
-      data: new Blob(),
+      data: undefined,
       headers: { "x-mensagem": "Nenhum aluno encontrado para o filtro." },
     } as never);
 
-    await expect(gerarPdfBoletim(filtro, [])).resolves.toEqual({
+    await expect(buscarContextoImpressaoBoletim(filtro, [])).resolves.toEqual({
       erro: true,
       mensagem: "Nenhum aluno encontrado para o filtro.",
     });
@@ -161,7 +161,7 @@ describe("boletimService", () => {
     };
     vi.mocked(getBoletim).mockRejectedValue(falha);
 
-    await expect(gerarPdfBoletim(filtro, [])).resolves.toEqual({
+    await expect(buscarContextoImpressaoBoletim(filtro, [])).resolves.toEqual({
       erro: true,
       mensagem: "Filtro invalido",
     });
@@ -219,7 +219,7 @@ describe("boletimService", () => {
   it("avisa quando a URL da API de boletim nao foi configurada", async () => {
     vi.mocked(getBoletimApiUrl).mockReturnValueOnce("");
 
-    await expect(gerarPdfBoletim(filtro, [])).resolves.toEqual({
+    await expect(buscarContextoImpressaoBoletim(filtro, [])).resolves.toEqual({
       erro: true,
       mensagem: "A URL da API de boletim não foi configurada.",
     });
