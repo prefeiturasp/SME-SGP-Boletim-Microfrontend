@@ -60,8 +60,8 @@ const bytesWindows1252: Record<number, number> = {
 
 const temMojibake = (valor: string) =>
   Array.from(valor).some((caractere, indice, caracteres) => {
-    const codigo = caractere.charCodeAt(0);
-    const proximo = caracteres[indice + 1]?.charCodeAt(0) ?? 0;
+    const codigo = caractere.codePointAt(0) ?? 0;
+    const proximo = caracteres[indice + 1]?.codePointAt(0) ?? 0;
     return (
       (codigo === 0xc2 || codigo === 0xc3) &&
       ((proximo >= 0x80 && proximo <= 0xbf) || proximo === 0x0192)
@@ -70,7 +70,7 @@ const temMojibake = (valor: string) =>
 
 const decodificarWindows1252ComoUtf8 = (valor: string) => {
   const bytes = Array.from(valor, (caractere) => {
-    const codigo = caractere.charCodeAt(0);
+    const codigo = caractere.codePointAt(0) ?? 0;
     return codigo <= 0xff ? codigo : bytesWindows1252[codigo] ?? codigo;
   });
   return new TextDecoder("utf-8", { fatal: true }).decode(
@@ -231,6 +231,8 @@ export const ajustarTamanhoTexto = (
 };
 
 export const tamanhoTextoPercentual = (tamanho: number, valor: unknown) =>
-  /^\d{3}(?:[.,]\d+)?%$/.test(String(valor ?? "").trim())
+  /^\d{3}(?:[.,]\d+)?%$/.test(
+    (typeof valor === "string" || typeof valor === "number" ? String(valor) : "").trim(),
+  )
     ? tamanho * 0.85
     : tamanho;

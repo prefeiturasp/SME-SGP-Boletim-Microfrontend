@@ -10,8 +10,8 @@ describe("GerandoBoletins", () => {
     );
 
     expect(html).toContain("Buscando dados dos boletins...");
-    expect(html).toContain('role="progressbar"');
-    expect(html).not.toContain("<progress");
+    expect(html).toContain('<progress class="gerando-barra gerando-barra-indeterminada"');
+    expect(html).not.toContain('value="');
   });
 
   it("representa o progresso da geração do PDF", () => {

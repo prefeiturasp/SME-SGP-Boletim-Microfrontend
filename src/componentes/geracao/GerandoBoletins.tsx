@@ -10,9 +10,8 @@ const GerandoBoletins = ({ fase, progresso }: GerandoBoletinsProps) => (
       {fase === "buscando-dados" ? (
         <>
           <strong className="gerando-titulo">Buscando dados dos boletins...</strong>
-          <div
+          <progress
             className="gerando-barra gerando-barra-indeterminada"
-            role="progressbar"
             aria-label="Buscando dados dos boletins"
           />
           <span className="gerando-dica">Consultando as informações dos estudantes.</span>

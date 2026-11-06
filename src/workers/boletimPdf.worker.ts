@@ -35,6 +35,14 @@ const MARGEM = 14.17;
 const COR = rgb(0.26, 0.28, 0.29);
 const FUNDO = rgb(0.95, 0.95, 0.95);
 
+const valorParaTexto = (valor: unknown) =>
+  typeof valor === "string" ||
+  typeof valor === "number" ||
+  typeof valor === "boolean" ||
+  typeof valor === "bigint"
+    ? String(valor)
+    : "";
+
 interface RecursosPdf {
   regular: PDFFont;
   negrito: PDFFont;
@@ -48,7 +56,7 @@ const publicar = (mensagem: MensagemWorkerSaida, transferir?: Transferable[]) =>
     mensagem.tipo === "erro"
       ? { ...mensagem, mensagem: corrigirMojibakeUtf8(mensagem.mensagem) }
       : mensagem;
-  self.postMessage(conteudo, { transfer: transferir || [] });
+  globalThis.postMessage(conteudo, { transfer: transferir || [] });
 };
 
 const carregar = async (url: string) => {
@@ -66,21 +74,21 @@ const limitar = (texto: string, fonte: PDFFont, tamanho: number, largura: number
   return `${texto.slice(0, fim)}...`;
 };
 
-const texto = (
-  pagina: PDFPage,
-  valor: unknown,
-  x: number,
-  topo: number,
-  largura: number,
-  fonte: PDFFont,
-  tamanho: number,
+const texto = (...[
+  pagina,
+  valor,
+  x,
+  topo,
+  largura,
+  fonte,
+  tamanho,
   centralizado = false,
   recuo = 3,
-  altura?: number,
-) => {
+  altura,
+]: [PDFPage, unknown, number, number, number, PDFFont, number, boolean?, number?, number?]) => {
   const margemHorizontal = centralizado ? 0.5 : recuo;
   const exibido = limitar(
-    corrigirMojibakeUtf8(String(valor ?? "")),
+    corrigirMojibakeUtf8(valorParaTexto(valor)),
     fonte,
     tamanho,
     largura - margemHorizontal * 2,
@@ -100,16 +108,16 @@ const texto = (
   });
 };
 
-const celula = (
-  pagina: PDFPage,
-  valor: unknown,
-  area: Area,
-  fonte: PDFFont,
-  tamanho: number,
+const celula = (...[
+  pagina,
+  valor,
+  area,
+  fonte,
+  tamanho,
   centralizado = false,
   fundo = false,
   recuo = 3,
-) => {
+]: [PDFPage, unknown, Area, PDFFont, number, boolean?, boolean?, number?]) => {
   pagina.drawRectangle({
     x: area.x,
     y: A4.altura - area.topo - area.altura,
@@ -133,16 +141,16 @@ const celula = (
   );
 };
 
-const celulaComQuebra = (
-  pagina: PDFPage,
-  valor: string,
-  area: Area,
-  fonte: PDFFont,
-  tamanho: number,
-  alturaLinhaTexto: number,
+const celulaComQuebra = (...[
+  pagina,
+  valor,
+  area,
+  fonte,
+  tamanho,
+  alturaLinhaTexto,
   fundo = false,
   recuo = 3,
-) => {
+]: [PDFPage, string, Area, PDFFont, number, number, boolean?, number?]) => {
   const linhas = linhasTexto(valor, fonte, tamanho, area.largura - recuo * 2);
   pagina.drawRectangle({
     x: area.x,
@@ -166,17 +174,17 @@ const celulaComQuebra = (
   });
 };
 
-const celulaAjustada = (
-  pagina: PDFPage,
-  valor: unknown,
-  area: Area,
-  fonte: PDFFont,
-  tamanho: number,
+const celulaAjustada = (...[
+  pagina,
+  valor,
+  area,
+  fonte,
+  tamanho,
   centralizado = false,
   fundo = false,
   recuo = 3,
-) => {
-  const textoValor = corrigirMojibakeUtf8(String(valor ?? ""));
+]: [PDFPage, unknown, Area, PDFFont, number, boolean?, boolean?, number?]) => {
+  const textoValor = corrigirMojibakeUtf8(valorParaTexto(valor));
   const larguraDisponivel = area.largura - (centralizado ? 1 : recuo * 2);
   const tamanhoAjustado = ajustarTamanhoTexto(
     tamanho,
@@ -203,7 +211,7 @@ const textoDireita = (
   tamanho: number,
 ) => {
   const exibido = limitar(
-    corrigirMojibakeUtf8(String(valor ?? "")),
+    corrigirMojibakeUtf8(valorParaTexto(valor)),
     fonte,
     tamanho,
     area.largura - 2,
@@ -397,6 +405,51 @@ const desenharBoletimSimples = (
   });
 };
 
+interface ContextoPeriodosTabela {
+  pagina: PDFPage;
+  componente: BoletimImpressao["grupos"][number]["componentes"][number];
+  periodos: number[];
+  componenteIndice: number;
+  alturasComponentes: number[];
+  x: number;
+  topo: number;
+  larguraNome: number;
+  larguraPeriodo: number;
+  alturaComponente: number;
+  recursos: RecursosPdf;
+  tamanhoValor: number;
+}
+
+const desenharPeriodosTabela = ({
+  pagina,
+  componente,
+  periodos,
+  componenteIndice,
+  alturasComponentes,
+  x,
+  topo,
+  larguraNome,
+  larguraPeriodo,
+  alturaComponente,
+  recursos,
+  tamanhoValor,
+}: ContextoPeriodosTabela) => {
+  componente.periodos.slice(0, periodos.length).forEach((periodo, indice) => {
+    const colunaX = x + larguraNome + larguraPeriodo * indice;
+    celula(pagina, periodo.nota, { x: colunaX, topo, largura: larguraPeriodo / 2, altura: alturaComponente }, recursos.regular, tamanhoValor, true);
+    if (!componente.eh_regencia) {
+      celula(pagina, periodo.frequencia, { x: colunaX + larguraPeriodo / 2, topo, largura: larguraPeriodo / 2, altura: alturaComponente }, recursos.regular, tamanhoValor, true);
+      return;
+    }
+    if (!componente.primeira_linha_regencia) return;
+    const quantidadeRegencia = Math.max(1, componente.linhas_regencia || 1);
+    const alturaRegencia = alturasComponentes
+      .slice(componenteIndice, componenteIndice + quantidadeRegencia)
+      .reduce((total, alturaAtual) => total + alturaAtual, 0);
+    celula(pagina, periodo.frequencia, { x: colunaX + larguraPeriodo / 2, topo, largura: larguraPeriodo / 2, altura: alturaRegencia }, recursos.regular, tamanhoValor, true);
+  });
+};
+
 const desenharBoletim = (
   pagina: PDFPage,
   boletim: BoletimImpressao,
@@ -512,19 +565,19 @@ const desenharBoletim = (
         false,
         configuracao.recuoCelula,
       );
-      componente.periodos.forEach((periodo, indice) => {
-        if (indice >= periodos.length) return;
-        const colunaX = x + larguraNome + larguraPeriodo * indice;
-        celula(pagina, periodo.nota, { x: colunaX, topo, largura: larguraPeriodo / 2, altura: alturaComponente }, recursos.regular, configuracao.tamanhoValorTabela, true);
-        if (!componente.eh_regencia) {
-          celula(pagina, periodo.frequencia, { x: colunaX + larguraPeriodo / 2, topo, largura: larguraPeriodo / 2, altura: alturaComponente }, recursos.regular, configuracao.tamanhoValorTabela, true);
-        } else if (componente.primeira_linha_regencia) {
-          const quantidadeRegencia = Math.max(1, componente.linhas_regencia || 1);
-          const alturaRegencia = alturasComponentes
-            .slice(componenteIndice, componenteIndice + quantidadeRegencia)
-            .reduce((total, alturaAtual) => total + alturaAtual, 0);
-          celula(pagina, periodo.frequencia, { x: colunaX + larguraPeriodo / 2, topo, largura: larguraPeriodo / 2, altura: alturaRegencia }, recursos.regular, configuracao.tamanhoValorTabela, true);
-        }
+      desenharPeriodosTabela({
+        pagina,
+        componente,
+        periodos,
+        componenteIndice,
+        alturasComponentes,
+        x,
+        topo,
+        larguraNome,
+        larguraPeriodo,
+        alturaComponente,
+        recursos,
+        tamanhoValor: configuracao.tamanhoValorTabela,
       });
       topo += alturaComponente;
     });
@@ -612,7 +665,7 @@ const gerar = async (contexto: ContextoImpressaoBoletim) => {
   const paginasRenderizacao =
     contexto.boletins_por_pagina === 1
       ? paginasOriginais
-          .flatMap((boletins) => boletins)
+          .flat()
           .flatMap((boletim) =>
             paginarBoletimExtenso(boletim).map((fragmento) => [fragmento]),
           )
@@ -656,12 +709,12 @@ const gerar = async (contexto: ContextoImpressaoBoletim) => {
   publicar({ tipo: "concluido", arquivo }, [arquivo]);
 };
 
-self.onmessage = (evento: MessageEvent<MensagemWorkerEntrada>) => {
+globalThis.onmessage = (evento: MessageEvent<MensagemWorkerEntrada>) => {
   if (evento.data.tipo !== "gerar") return;
-  void gerar(evento.data.contexto).catch((falha: unknown) => {
+  void gerar(evento.data.contexto).catch((error: unknown) => {
     publicar({
       tipo: "erro",
-      mensagem: falha instanceof Error ? falha.message : "Não foi possível gerar o PDF.",
+      mensagem: error instanceof Error ? error.message : "Não foi possível gerar o PDF.",
     });
   });
 };
