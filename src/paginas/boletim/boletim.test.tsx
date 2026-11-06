@@ -2,9 +2,8 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { confirmar, erro, sucesso } from "../../core/config/alertas";
 import {
-  gerarPdfBoletim,
+  buscarContextoImpressaoBoletim,
   imprimirBoletim,
-  obterUltimaAtualizacao,
 } from "../../services/boletimService";
 import Boletim from "./boletim";
 
@@ -46,9 +45,8 @@ vi.mock("../../core/config/alertas", () => ({
 }));
 
 vi.mock("../../services/boletimService", () => ({
-  gerarPdfBoletim: vi.fn(),
+  buscarContextoImpressaoBoletim: vi.fn(),
   imprimirBoletim: vi.fn(),
-  obterUltimaAtualizacao: vi.fn(),
 }));
 
 vi.mock("../../componentes/filtro/FiltroBoletim", () => {
@@ -114,7 +112,9 @@ vi.mock("../../componentes/alunos/ListaAlunos", () => ({
 }));
 
 vi.mock("../../componentes/geracao/GerandoBoletins", () => ({
-  default: () => <div>Gerando boletins</div>,
+  default: ({ fase }: { fase: "buscando-dados" | "gerando-pdf" }) => (
+    <div>{fase === "buscando-dados" ? "Buscando dados dos boletins" : "Gerando arquivo PDF"}</div>
+  ),
 }));
 
 vi.mock("../../componentes/geracao/VisualizacaoBoletim", () => ({
@@ -138,12 +138,23 @@ vi.mock("../../componentes/geracao/VisualizacaoBoletim", () => ({
 }));
 
 describe("Boletim", () => {
-  let concluirPdf: (resultado: Awaited<ReturnType<typeof gerarPdfBoletim>>) => void;
+  let concluirPdf: (resultado: Awaited<ReturnType<typeof buscarContextoImpressaoBoletim>>) => void;
+  let concluirWorker: (() => void) | undefined;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("requestAnimationFrame", vi.fn(() => 1));
-    vi.stubGlobal("cancelAnimationFrame", vi.fn());
+    class WorkerSimulado {
+      onmessage: ((evento: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      postMessage() {
+        concluirWorker = () =>
+          this.onmessage?.({
+            data: { tipo: "concluido", arquivo: new ArrayBuffer(8) },
+          } as MessageEvent);
+      }
+      terminate() {}
+    }
+    vi.stubGlobal("Worker", WorkerSimulado);
     Object.defineProperty(URL, "createObjectURL", {
       configurable: true,
       value: vi.fn(() => "blob:boletim"),
@@ -153,14 +164,13 @@ describe("Boletim", () => {
       value: vi.fn(),
     });
     vi.mocked(confirmar).mockResolvedValue(true);
-    vi.mocked(gerarPdfBoletim).mockImplementation(
+    vi.mocked(buscarContextoImpressaoBoletim).mockImplementation(
       () =>
-        new Promise<Awaited<ReturnType<typeof gerarPdfBoletim>>>((resolve) => {
+        new Promise<Awaited<ReturnType<typeof buscarContextoImpressaoBoletim>>>((resolve) => {
           concluirPdf = resolve;
         }),
     );
     vi.mocked(imprimirBoletim).mockResolvedValue({ data: { id: 1 } } as never);
-    vi.mocked(obterUltimaAtualizacao).mockResolvedValue("30/09/2026 - 08:45");
   });
 
   it("aplica filtros, gera e exibe o boletim de 2026 com os dados do filtro", async () => {
@@ -171,19 +181,27 @@ describe("Boletim", () => {
     await waitFor(() => expect((gerar as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(gerar);
 
-    expect(screen.getByText("Gerando boletins")).toBeTruthy();
+    expect(screen.getByText("Buscando dados dos boletins")).toBeTruthy();
     await act(async () => {
       concluirPdf({
-        arquivo: new Blob(["pdf"], { type: "application/pdf" }),
-        nomeArquivo: "boletim-escolar-2026.pdf",
+        contexto: {
+          paginas: [],
+          boletins_por_pagina: 2,
+          dados_atualizados_em: "30/09/2026 08:45",
+          data_impressao: "03/11/2026 10:00",
+          total_paginas: 0,
+        },
       });
     });
+    expect(await screen.findByText("Gerando arquivo PDF")).toBeTruthy();
+    await waitFor(() => expect(concluirWorker).toBeTypeOf("function"));
+    await act(async () => concluirWorker?.());
     expect(await screen.findByText("Visualizando boletim-escolar-2026.pdf")).toBeTruthy();
     expect(screen.getByText("2026")).toBeTruthy();
     expect(screen.getByText("DRE")).toBeTruthy();
     expect(screen.getByText("1A")).toBeTruthy();
     expect(screen.getByText("30/09/2026 - 08:45")).toBeTruthy();
-    expect(gerarPdfBoletim).toHaveBeenCalledWith(
+    expect(buscarContextoImpressaoBoletim).toHaveBeenCalledWith(
       expect.objectContaining({
         anoLetivo: "2026",
         dreCodigo: "1",
@@ -191,11 +209,6 @@ describe("Boletim", () => {
         turmaCodigo: "3",
         quantidadeBoletimPorPagina: "2",
       }),
-      [],
-      expect.any(AbortSignal),
-    );
-    expect(obterUltimaAtualizacao).toHaveBeenCalledWith(
-      expect.objectContaining({ anoLetivo: "2026" }),
       [],
       expect.any(AbortSignal),
     );
@@ -214,8 +227,8 @@ describe("Boletim", () => {
     expect(sucesso).toHaveBeenCalledWith(
       "Solicitação de geração do relatório gerada com sucesso. Em breve você receberá uma notificação com o resultado.",
     );
-    expect(gerarPdfBoletim).not.toHaveBeenCalled();
-    expect(screen.queryByText("Gerando boletins")).toBeNull();
+    expect(buscarContextoImpressaoBoletim).not.toHaveBeenCalled();
+    expect(screen.queryByText("Buscando dados dos boletins")).toBeNull();
   });
 
   it("informa quando a solicitacao antiga falha", async () => {
@@ -235,7 +248,7 @@ describe("Boletim", () => {
   });
 
   it("volta aos filtros quando a geracao em tempo real falha", async () => {
-    vi.mocked(gerarPdfBoletim).mockResolvedValue({
+    vi.mocked(buscarContextoImpressaoBoletim).mockResolvedValue({
       erro: true,
       mensagem: "Nenhum aluno encontrado.",
     });
@@ -272,10 +285,18 @@ describe("Boletim", () => {
     fireEvent.click(gerar);
     await act(async () => {
       concluirPdf({
-        arquivo: new Blob(["pdf"], { type: "application/pdf" }),
-        nomeArquivo: "boletim-escolar-2026.pdf",
+        contexto: {
+          paginas: [],
+          boletins_por_pagina: 2,
+          dados_atualizados_em: null,
+          data_impressao: "03/11/2026 10:00",
+          total_paginas: 0,
+        },
       });
     });
+    await screen.findByText("Gerando arquivo PDF");
+    await waitFor(() => expect(concluirWorker).toBeTypeOf("function"));
+    await act(async () => concluirWorker?.());
 
     fireEvent.click(await screen.findByRole("button", { name: "Alterar Filtros" }));
 

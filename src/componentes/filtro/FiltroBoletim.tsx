@@ -336,7 +336,7 @@ const FiltroBoletim = ({
 
       if (retorno.length) {
         const lista: OpcaoFiltro[] = [];
-        if (retorno.length > 1 && anoLetivo !== anoAtual) {
+        if (retorno.length > 1) {
           lista.push({ valor: OPCAO_TODOS, nomeFiltro: "Todas" });
         }
         retorno.forEach((item) =>
@@ -368,7 +368,6 @@ const FiltroBoletim = ({
     dreCodigo,
     consideraHistorico,
     anoLetivo,
-    anoAtual,
     modalidadeId,
     semestre,
   ]);
