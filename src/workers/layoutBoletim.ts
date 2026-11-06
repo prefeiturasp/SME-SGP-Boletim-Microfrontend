@@ -231,9 +231,11 @@ export const ajustarTamanhoTexto = (
   return atual;
 };
 
-export const tamanhoTextoPercentual = (tamanho: number, valor: unknown) =>
-  /^\d{3}(?:[.,]\d+)?%$/.test(
-    (typeof valor === "string" || typeof valor === "number" ? String(valor) : "").trim(),
-  )
-    ? tamanho * 0.85
-    : tamanho;
+export const tamanhoTextoPercentual = (tamanho: number, valor: unknown) => {
+  let texto = "";
+  if (typeof valor === "string" || typeof valor === "number") {
+    texto = String(valor).trim();
+  }
+  if (/^\d{3}(?:[.,]\d+)?%$/.test(texto)) return tamanho * 0.85;
+  return tamanho;
+};

@@ -524,6 +524,39 @@ const desenharTabela = ({
   return topo;
 };
 
+const desenharAssinaturas = (
+  pagina: PDFPage,
+  exibeAssinaturas: boolean,
+  x: number,
+  topoInicial: number,
+  largura: number,
+  linha: number,
+) => {
+  if (!exibeAssinaturas) return topoInicial;
+  let topo = topoInicial + 1;
+  for (let indice = 0; indice < 2; indice += 1) {
+    topo += linha;
+    pagina.drawLine({
+      start: { x, y: A4.altura - topo },
+      end: { x: x + largura, y: A4.altura - topo },
+      thickness: 0.45,
+      color: COR,
+    });
+  }
+  return topo;
+};
+
+const validarLimiteBoletim = (
+  densidade: 1 | 2,
+  topo: number,
+  limite: number,
+  nomeAluno: string,
+) => {
+  if (densidade === 1 && topo > limite) {
+    throw new Error(`O boletim de ${nomeAluno} excedeu o espaço do layout.`);
+  }
+};
+
 const desenharBoletim = (
   pagina: PDFPage,
   boletim: BoletimImpressao,
@@ -549,8 +582,9 @@ const desenharBoletim = (
     MARGEM,
   );
   const exibeTabela = !("exibe_tabela" in boletim) || boletim.exibe_tabela;
-  const exibeAssinaturas =
-    !("exibe_assinaturas" in boletim) || boletim.exibe_assinaturas;
+  const exibeAssinaturas = Boolean(
+    !("exibe_assinaturas" in boletim) || boletim.exibe_assinaturas,
+  );
   let topo = area.topo + configuracao.margemInterna;
 
   if (configuracao.bordaExterna) {
@@ -647,22 +681,15 @@ const desenharBoletim = (
     }
   }
 
-  if (exibeAssinaturas) {
-    topo += 1;
-    for (let indice = 0; indice < 2; indice += 1) {
-      topo += linha;
-      pagina.drawLine({
-        start: { x, y: A4.altura - topo },
-        end: { x: x + largura, y: A4.altura - topo },
-        thickness: 0.45,
-        color: COR,
-      });
-    }
-  }
-
-  if (densidade === 1 && topo > limite) {
-    throw new Error(`O boletim de ${boletim.nome_aluno} excedeu o espaço do layout.`);
-  }
+  topo = desenharAssinaturas(
+    pagina,
+    exibeAssinaturas,
+    x,
+    topo,
+    largura,
+    linha,
+  );
+  validarLimiteBoletim(densidade, topo, limite, boletim.nome_aluno);
 
 };
 
