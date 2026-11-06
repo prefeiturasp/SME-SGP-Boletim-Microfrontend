@@ -71,7 +71,8 @@ const temMojibake = (valor: string) =>
 const decodificarWindows1252ComoUtf8 = (valor: string) => {
   const bytes = Array.from(valor, (caractere) => {
     const codigo = caractere.codePointAt(0) ?? 0;
-    return codigo <= 0xff ? codigo : bytesWindows1252[codigo] ?? codigo;
+    if (codigo <= 0xff) return codigo;
+    return bytesWindows1252[codigo] ?? codigo;
   });
   return new TextDecoder("utf-8", { fatal: true }).decode(
     Uint8Array.from(bytes),

@@ -450,6 +450,80 @@ const desenharPeriodosTabela = ({
   });
 };
 
+interface ContextoTabela {
+  pagina: PDFPage;
+  boletim: BoletimImpressao;
+  configuracao: (typeof configuracoesLayout)[1 | 2];
+  recursos: RecursosPdf;
+  x: number;
+  topo: number;
+  largura: number;
+  linha: number;
+  tamanho: number;
+}
+
+const desenharTabela = ({
+  pagina,
+  boletim,
+  configuracao,
+  recursos,
+  x,
+  topo: topoInicial,
+  largura,
+  linha,
+  tamanho,
+}: ContextoTabela) => {
+  let topo = topoInicial;
+  const periodos = boletim.periodos;
+  const larguraNome = largura * 0.44;
+  const larguraPeriodo = (largura - larguraNome) / Math.max(1, periodos.length);
+  celula(pagina, "Componentes curriculares", { x, topo, largura: larguraNome, altura: linha * 2 }, recursos.negrito, tamanho, false, true, configuracao.recuoCelula);
+  periodos.forEach((periodo, indice) => {
+    const colunaX = x + larguraNome + larguraPeriodo * indice;
+    celula(pagina, periodo === 0 ? "Final" : `${periodo}º Bim.`, { x: colunaX, topo, largura: larguraPeriodo, altura: linha }, recursos.negrito, configuracao.tamanhoCabecalhoTabela, true, true);
+    celula(pagina, boletim.usa_conceito ? "Conc." : "Nota", { x: colunaX, topo: topo + linha, largura: larguraPeriodo / 2, altura: linha }, recursos.regular, configuracao.tamanhoCabecalhoTabela, true, true);
+    celula(pagina, "%", { x: colunaX + larguraPeriodo / 2, topo: topo + linha, largura: larguraPeriodo / 2, altura: linha }, recursos.regular, configuracao.tamanhoCabecalhoTabela, true, true);
+  });
+  topo += linha * 2;
+
+  boletim.grupos.forEach((grupo, grupoIndice) => {
+    if (grupoIndice > 0) topo += configuracao.margemSecao;
+    const alturasComponentes = grupo.componentes.map((componente) => {
+      const quantidadeLinhas = Math.max(
+        1,
+        linhasTexto(
+          componente.nome,
+          recursos.regular,
+          tamanho,
+          larguraNome - configuracao.recuoCelula * 2,
+        ).length,
+      );
+      const espacoAdicional = quantidadeLinhas > 1 ? 4 : 0;
+      return Math.max(linha, quantidadeLinhas * tamanho * 1.2 + espacoAdicional);
+    });
+    grupo.componentes.forEach((componente, componenteIndice) => {
+      const alturaComponente = alturasComponentes[componenteIndice];
+      celulaComQuebra(pagina, componente.nome, { x, topo, largura: larguraNome, altura: alturaComponente }, recursos.regular, tamanho, tamanho * 1.2, false, configuracao.recuoCelula);
+      desenharPeriodosTabela({
+        pagina,
+        componente,
+        periodos,
+        componenteIndice,
+        alturasComponentes,
+        x,
+        topo,
+        larguraNome,
+        larguraPeriodo,
+        alturaComponente,
+        recursos,
+        tamanhoValor: configuracao.tamanhoValorTabela,
+      });
+      topo += alturaComponente;
+    });
+  });
+  return topo;
+};
+
 const desenharBoletim = (
   pagina: PDFPage,
   boletim: BoletimImpressao,
@@ -523,69 +597,17 @@ const desenharBoletim = (
   topo += linha + configuracao.margemSecao;
 
   if (exibeTabela) {
-  const periodos = boletim.periodos;
-  const larguraNome = largura * 0.44;
-  const larguraPeriodo = (largura - larguraNome) / Math.max(1, periodos.length);
-  celula(pagina, "Componentes curriculares", { x, topo, largura: larguraNome, altura: linha * 2 }, recursos.negrito, tamanho, false, true, configuracao.recuoCelula);
-  periodos.forEach((periodo, indice) => {
-    const colunaX = x + larguraNome + larguraPeriodo * indice;
-    celula(pagina, periodo === 0 ? "Final" : `${periodo}º Bim.`, { x: colunaX, topo, largura: larguraPeriodo, altura: linha }, recursos.negrito, configuracao.tamanhoCabecalhoTabela, true, true);
-    celula(pagina, boletim.usa_conceito ? "Conc." : "Nota", { x: colunaX, topo: topo + linha, largura: larguraPeriodo / 2, altura: linha }, recursos.regular, configuracao.tamanhoCabecalhoTabela, true, true);
-    celula(pagina, "%", { x: colunaX + larguraPeriodo / 2, topo: topo + linha, largura: larguraPeriodo / 2, altura: linha }, recursos.regular, configuracao.tamanhoCabecalhoTabela, true, true);
-  });
-  topo += linha * 2;
-
-  boletim.grupos.forEach((grupo, grupoIndice) => {
-    if (grupoIndice > 0) topo += configuracao.margemSecao;
-    const alturasComponentes = grupo.componentes.map((componente) => {
-      const quantidadeLinhas = Math.max(
-        1,
-        linhasTexto(
-          componente.nome,
-          recursos.regular,
-          tamanho,
-          larguraNome - configuracao.recuoCelula * 2,
-        ).length,
-      );
-      const espacoAdicional = quantidadeLinhas > 1 ? 4 : 0;
-      return Math.max(
-        linha,
-        quantidadeLinhas * tamanho * 1.2 + espacoAdicional,
-      );
+    topo = desenharTabela({
+      pagina,
+      boletim,
+      configuracao,
+      recursos,
+      x,
+      topo,
+      largura,
+      linha,
+      tamanho,
     });
-    grupo.componentes.forEach((componente, componenteIndice) => {
-      const alturaComponente = alturasComponentes[componenteIndice];
-      celulaComQuebra(
-        pagina,
-        componente.nome,
-        { x, topo, largura: larguraNome, altura: alturaComponente },
-        recursos.regular,
-        tamanho,
-        tamanho * 1.2,
-        false,
-        configuracao.recuoCelula,
-      );
-      desenharPeriodosTabela({
-        pagina,
-        componente,
-        periodos,
-        componenteIndice,
-        alturasComponentes,
-        x,
-        topo,
-        larguraNome,
-        larguraPeriodo,
-        alturaComponente,
-        recursos,
-        tamanhoValor: configuracao.tamanhoValorTabela,
-      });
-      topo += alturaComponente;
-    });
-  });
-
-  if (densidade === 1 && topo > limite) {
-    throw new Error(`O boletim de ${boletim.nome_aluno} excedeu o espaço do layout.`);
-  }
   }
 
   if (boletim.exibe_legenda) {
