@@ -69,6 +69,7 @@ export default defineConfig({
     },
   ],
   build: {
+    assetsInlineLimit: 100_000,
     modulePreload: false,
     target: "esnext",
     minify: false,

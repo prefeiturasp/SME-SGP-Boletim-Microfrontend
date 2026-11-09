@@ -168,7 +168,7 @@ describe("FiltroBoletim", () => {
     expect(screen.queryByText("Exibir histórico?")).toBeNull();
   });
 
-  it("nao inclui a opcao todas no ano letivo atual", async () => {
+  it("permite selecionar todas as turmas no ano letivo atual", async () => {
     vi.mocked(listarTurmas).mockResolvedValue([
       { nome: "1A", codigo: "3", nomeFiltro: "1A" },
       { nome: "1B", codigo: "4", nomeFiltro: "1B" },
@@ -189,7 +189,7 @@ describe("FiltroBoletim", () => {
       expect(screen.getByRole("option", { name: "1A" })).toBeTruthy(),
       { timeout: 5000 },
     );
-    expect(screen.queryByRole("option", { name: "Todas" })).toBeNull();
+    expect(screen.getByRole("option", { name: "Todas" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "1B" })).toBeTruthy();
   });
 

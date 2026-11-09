@@ -13,7 +13,8 @@ const MENSAGEM_CONSOLIDACAO =
 
 const ItemResumo = ({ rotulo, valor }: { rotulo: string; valor: string }) => (
   <span className="boletim-resumo-item">
-    <b>{rotulo}:</b> {valor || "-"}
+    <span>{rotulo}: </span>
+    <strong>{valor || "-"}</strong>
   </span>
 );
 
@@ -52,13 +53,15 @@ const VisualizacaoBoletim = ({
       </div>
       <div className="boletim-consolidacao">
         <span className="boletim-consolidacao-chip">
-          <span>Dados consolidados em: {dataConsolidacao || "-"}</span>
+          <span>
+            Dados consolidados em: <strong>{dataConsolidacao || "-"}</strong>
+          </span>
           <Tooltip
             title={MENSAGEM_CONSOLIDACAO}
             placement="bottomRight"
             trigger={["hover", "focus"]}
             mouseEnterDelay={0}
-            overlayInnerStyle={{ maxWidth: 340 }}
+            overlayInnerStyle={{ maxWidth: 400 }}
           >
             <button
               type="button"

@@ -161,6 +161,20 @@
   transition: width 0.12s linear;
 }
 
+.gerando-barra-indeterminada {
+  position: relative;
+}
+
+.gerando-barra-indeterminada::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: #6933ff;
+  border-radius: inherit;
+  animation: boletim-progresso-indeterminado 1.2s ease-in-out infinite;
+}
+
 .gerando-dica {
   font-size: 13px;
   color: #8d9498;
@@ -169,9 +183,10 @@
 .boletim-visualizacao {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
   background: #fff;
-  padding: 12px 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
 }
 
 .boletim-resumo {
@@ -179,8 +194,13 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px 32px;
-  padding: 4px 4px 8px;
+  padding: 16px 18px 18px;
+  font-family: Roboto, sans-serif;
   font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
   color: #42474a;
 }
 
@@ -194,9 +214,12 @@
 
 .boletim-resumo-titulo {
   margin: 0;
+  font-family: Roboto, sans-serif;
   font-size: 14px;
+  font-style: normal;
   font-weight: 700;
-  line-height: 20px;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .boletim-resumo-linha {
@@ -206,7 +229,16 @@
 }
 
 .boletim-resumo-item {
-  line-height: 20px;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.boletim-resumo-item strong {
+  font-weight: 700;
 }
 
 .boletim-consolidacao {
@@ -218,14 +250,22 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px 6px 14px;
-  border: 1px solid #c4b5fd;
+  padding: 9px 10px 9px 14px;
+  border: 1px solid #9670ff;
   border-radius: 999px;
-  background: #fff;
-  color: #6933ff;
-  font-size: 13px;
-  line-height: 18px;
+  background: #efe9fe;
+  color: #42474a;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0;
   white-space: nowrap;
+}
+
+.boletim-consolidacao-chip strong {
+  font-weight: 700;
 }
 
 .boletim-consolidacao-info {
@@ -238,7 +278,7 @@
   border: 1.5px solid currentColor;
   border-radius: 50%;
   background: transparent;
-  color: inherit;
+  color: #6933ff;
   font-family: Georgia, "Times New Roman", serif;
   font-size: 12px;
   font-style: italic;
@@ -263,6 +303,7 @@
 }
 
 .boletim-pdf {
+  display: block;
   width: 100%;
   height: calc(100vh - 210px);
   min-height: 640px;
@@ -277,5 +318,15 @@
 @keyframes boletim-girar {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes boletim-progresso-indeterminado {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(385%);
   }
 }

@@ -4,6 +4,7 @@ import { OPCAO_SELECIONAR_ALUNOS, OPCAO_TODOS } from "../core/constantes";
 import { getBoletimApiUrl } from "../config";
 import { getBoletim } from "../core/servico/apiBoletim";
 import { getSgp, postSgp } from "../core/servico/apiSgp";
+import type { ContextoImpressaoBoletim } from "../types/boletimImpressao";
 
 export interface DadosFiltroBoletim {
   anoLetivo: string;
@@ -51,8 +52,7 @@ export const imprimirBoletim = async (
 };
 
 export interface ResultadoPdfBoletim {
-  arquivo?: Blob;
-  nomeArquivo?: string;
+  contexto?: ContextoImpressaoBoletim;
   mensagem?: string;
   erro?: boolean;
   cancelado?: boolean;
@@ -145,9 +145,6 @@ export const obterUltimaAtualizacao = async (
   }
 };
 
-const nomeArquivoPadrao = (anoLetivo?: string) =>
-  `boletim-escolar-${anoLetivo || "2026"}.pdf`;
-
 const lerCabecalho = (headers: AxiosResponse["headers"] | undefined, nome: string) => {
   if (!headers) return "";
   if (typeof headers.get === "function") {
@@ -157,19 +154,6 @@ const lerCabecalho = (headers: AxiosResponse["headers"] | undefined, nome: strin
   const registro = headers as unknown as Record<string, unknown>;
   const valor = registro[nome] ?? registro[nome.toLowerCase()];
   return typeof valor === "string" ? valor : "";
-};
-
-const nomeDoArquivo = (contentDisposition: string, anoLetivo?: string) => {
-  const utf = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
-  if (utf?.[1]) {
-    try {
-      return decodeURIComponent(utf[1]);
-    } catch {
-      return utf[1];
-    }
-  }
-  const simples = /filename="?([^";]+)"?/i.exec(contentDisposition);
-  return simples?.[1] || nomeArquivoPadrao(anoLetivo);
 };
 
 const textoDoBlob = (data: Blob) => {
@@ -211,10 +195,11 @@ const mensagemDoCorpo = async (data: unknown) => {
   return "";
 };
 
-export const gerarPdfBoletim = async (
+export const buscarContextoImpressaoBoletim = async (
   filtro: DadosFiltroBoletim,
   alunosCodigo: string[],
   signal?: AbortSignal,
+  onProgresso?: (valor: number) => void,
 ): Promise<ResultadoPdfBoletim> => {
   if (!getBoletimApiUrl()) {
     return {
@@ -224,39 +209,26 @@ export const gerarPdfBoletim = async (
   }
 
   try {
-    const resposta = await getBoletim<Blob>("api/boletim/pdf/", {
+    const resposta = await getBoletim<ContextoImpressaoBoletim>("api/boletim/", {
       params: montarParametrosPdf(filtro, alunosCodigo),
-      responseType: "blob",
       signal,
-      headers: { Accept: "application/pdf" },
+      headers: { Accept: "application/json" },
+      onDownloadProgress: (evento) => {
+        if (!evento.total || !onProgresso) return;
+        onProgresso(Math.min(100, (evento.loaded / evento.total) * 100));
+      },
     });
 
     const mensagemCabecalho = lerCabecalho(resposta.headers, "x-mensagem");
-    const arquivoVazio = resposta.data instanceof Blob && resposta.data.size === 0;
-    if (resposta.status === 204 || arquivoVazio) {
+    if (resposta.status === 204 || !resposta.data) {
       return {
         erro: true,
         mensagem: mensagemCabecalho || "Nenhum aluno encontrado.",
       };
     }
 
-    const tipo = lerCabecalho(resposta.headers, "content-type");
-    if (tipo.includes("application/json")) {
-      return {
-        erro: true,
-        mensagem:
-          (await mensagemDoCorpo(resposta.data)) ||
-          mensagemCabecalho ||
-          "Não foi possível gerar o boletim.",
-      };
-    }
-
     return {
-      arquivo: resposta.data,
-      nomeArquivo: nomeDoArquivo(
-        lerCabecalho(resposta.headers, "content-disposition"),
-        filtro.anoLetivo,
-      ),
+      contexto: resposta.data,
     };
   } catch (falha) {
     if (axios.isCancel(falha) || (axios.isAxiosError(falha) && falha.code === "ERR_CANCELED")) {
