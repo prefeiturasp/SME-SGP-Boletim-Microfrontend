@@ -118,7 +118,7 @@ describe("boletimService", () => {
       paginas: [],
       boletins_por_pagina: 2,
       dados_atualizados_em: null,
-      data_impressao: "03/11/2026 10:00",
+      data_geracao: "03/11/2026 10:00",
       total_paginas: 0,
     } as const;
     vi.mocked(getBoletim).mockResolvedValue({

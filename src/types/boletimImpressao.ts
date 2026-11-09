@@ -50,7 +50,7 @@ export interface ContextoImpressaoBoletim {
   paginas: PaginaImpressao[];
   boletins_por_pagina: 1 | 2 | 6;
   dados_atualizados_em: string | null;
-  data_impressao: string;
+  data_geracao: string;
   total_paginas: number;
 }
 
