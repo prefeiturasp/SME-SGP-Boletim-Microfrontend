@@ -281,7 +281,7 @@ const desenharRodape = (
   const atualizacao = contexto.dados_atualizados_em || "não informado";
   pagina.drawText(
     corrigirMojibakeUtf8(
-      `SGP - Sistema de Gestão Pedagógica | Dados atualizados em ${atualizacao} | Gerado em ${contexto.data_impressao}`,
+      `SGP - Sistema de Gestão Pedagógica | Dados atualizados em ${atualizacao} | Gerado em ${contexto.data_geracao}`,
     ),
     { x: MARGEM, y: 6, size: tamanho, font: recursos.regular, color: COR },
   );
@@ -739,7 +739,7 @@ const gerar = async (contexto: ContextoImpressaoBoletim) => {
         areas[indice],
         recursos,
         contexto.boletins_por_pagina,
-        contexto.data_impressao,
+        contexto.data_geracao,
       );
       processados += 1;
       publicar({ tipo: "progresso", valor: 5 + (processados / totalBoletins) * 85 });
